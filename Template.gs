@@ -11,7 +11,7 @@ const BOX_TICKED = '☑';
 
 /** Named ranges for intake fields. */
 const FIELD_RANGES = {
-  ECL_REF: 'M2:O2',
+  ECL_REF: 'H2:L2', // left of the QR code (top right)
   ECL_DATE_FILING: 'L8:N8',
   ECL_PURPOSE_TRANSFER: 'E12',
   ECL_PURPOSE_RETIREMENT: 'E13',
@@ -66,6 +66,31 @@ function buildTemplate_() {
 function cleanupTemplate_(ss) {
   const sh = ss.getSheetByName(FORM_SHEET);
 
+  // Trim the grid to the form (A1:O53) and the instructions (A1:F34) so the PDF scales to the page width.
+  // The originals are 26 columns x 1,000 rows, which made the exported form print at half size.
+  trimSheet_(sh, 15, 53);
+  const instr = ss.getSheetByName('Instructions');
+  if (instr) trimSheet_(instr, 6, 34);
+
+  // Row heights: room for the QR (rows 1–5), a visible Date of Filing (row 8, was 2 px), the employee
+  // name + notation (row 17, was 12 px) and the EVP notation (row 49, was hidden).
+  [1, 2, 3].forEach((r) => sh.setRowHeight(r, 24));
+  sh.setRowHeight(8, 18);
+  sh.setRowHeight(17, 34);
+  sh.showRows(49);
+  sh.setRowHeight(49, 20);
+
+  // Remove the original drawn check boxes in Parts II–IV (they overlapped the ☐/☑ text).
+  sh.getDrawings().forEach((d) => {
+    const r = d.getContainerInfo().getAnchorRow();
+    if (r >= 19 && r <= 43) d.remove();
+  });
+  sh.getImages().forEach((img) => {
+    const r = img.getAnchorCell().getRow();
+    if (r >= 19 && r <= 43) img.remove();
+  });
+  sh.getRange('D41:D42').setBorder(false, false, false, false, false, false);
+
   // Purpose: the Wingdings "£" check boxes render as pound signs in Sheets.
   sh.getRange('E12').setValue(`${BOX_EMPTY} Transfer`);
   sh.getRange('E13').setValue(`${BOX_EMPTY} Retirement`);
@@ -78,13 +103,13 @@ function cleanupTemplate_(ss) {
     if (k !== 'ECL_REF') sh.getRange(FIELD_RANGES[k]).setValue(FIELD_LABELS[k]);
   });
 
-  // Reference number slot, top right.
-  sh.getRange('M2:O2').merge().setHorizontalAlignment('right').setFontSize(9).setFontFamily('Arial')
-    .setValue(FIELD_LABELS.ECL_REF);
+  // Reference number, top right (left of where the QR code goes).
+  sh.getRange('H2:L2').merge().setHorizontalAlignment('right').setVerticalAlignment('top').setFontSize(9)
+    .setFontFamily('Arial').setValue(FIELD_LABELS.ECL_REF);
 
   // Employee name line (underscores -> bottom border).
-  sh.getRange('J17:O17').setValue('').setHorizontalAlignment('center').setFontWeight('bold')
-    .setFontFamily('Arial').setBorder(null, null, true, null, null, null);
+  sh.getRange('J17:O17').setValue('').setHorizontalAlignment('center').setVerticalAlignment('bottom')
+    .setFontWeight('bold').setFontFamily('Arial').setWrap(true).setBorder(null, null, true, null, null, null);
 
   // Part II statement with real check boxes; signature lines become bordered name cells.
   sh.getRange('A21').setValue(
@@ -103,7 +128,7 @@ function cleanupTemplate_(ss) {
   sh.getRange('N28:O28').merge();
 
   // Part V notation line above the EVP name.
-  sh.getRange('A49:O49').merge().setHorizontalAlignment('center').setFontSize(8);
+  sh.getRange('A49:O49').merge().setHorizontalAlignment('center').setVerticalAlignment('bottom').setFontSize(8);
 
   // Named ranges.
   Object.keys(FIELD_RANGES).forEach((name) => ss.setNamedRange(name, sh.getRange(FIELD_RANGES[name])));
@@ -114,6 +139,12 @@ function cleanupTemplate_(ss) {
     });
   });
   SpreadsheetApp.flush();
+}
+
+/** Deletes columns after `cols` and rows after `rows`. */
+function trimSheet_(sh, cols, rows) {
+  if (sh.getMaxColumns() > cols) sh.deleteColumns(cols + 1, sh.getMaxColumns() - cols);
+  if (sh.getMaxRows() > rows) sh.deleteRows(rows + 1, sh.getMaxRows() - rows);
 }
 
 /* ------------------------------------------------------------------ fill helpers */
@@ -151,7 +182,9 @@ function fillLiveForm_(ss, req, signatories) {
   setLabeled_(named_(ss, 'ECL_REF'), FIELD_LABELS.ECL_REF, req.ref);
   named_(ss, 'ECL_DATE_FILING').setValue(formatLongDate_(req.dateOfFiling))
     .setHorizontalAlignment('center').setFontWeight('bold');
-  named_(ss, 'ECL_EMPLOYEE_NAME').setValue(req.employeeName);
+  // The employee's signature: the clearance can only be filed with their approved Notice of Separation.
+  setNameWithNotation_(named_(ss, 'ECL_EMPLOYEE_NAME'), req.employeeName,
+    `Initiated through approved Notice of Separation (on file) · ${formatLongDate_(req.dateOfFiling)}`);
   setLabeled_(named_(ss, 'ECL_EFFECTIVITY'), FIELD_LABELS.ECL_EFFECTIVITY, formatLongDate_(req.effectivity));
   setLabeled_(named_(ss, 'ECL_OFFICE'), FIELD_LABELS.ECL_OFFICE, req.office);
   setLabeled_(named_(ss, 'ECL_POSITION'), FIELD_LABELS.ECL_POSITION, req.position);

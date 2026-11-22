@@ -71,6 +71,7 @@ const FORM_SHEET = 'Clearance Form';
 const FOLDERS = {
   ROOT: 'DAP E-Clearance System',
   TEMPLATE: 'Template',
+  DOCS: 'Supporting Documents',
   LIVE: 'Live Clearance Forms',
   COMPLETED: 'Completed Clearances',
 };

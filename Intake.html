@@ -99,6 +99,21 @@
       </fieldset>
 
       <fieldset>
+        <legend>Separation Documents</legend>
+        <div class="row">
+          <div class="f"><label>Approved Notice of Separation <span class="req">*</span></label>
+            <input type="file" id="nosFile" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
+            <div class="hint">Approved by the Center/Department Head, the Group Head and the President and CEO.
+            The clearance is initiated on the strength of this notice. PDF, Word, JPG or PNG, up to 10 MB.</div></div>
+        </div>
+        <div class="row">
+          <div class="f"><label>CS Form No. 10 — Acceptance of Resignation <span class="req" id="csfReq">*</span></label>
+            <input type="file" id="csf10File" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
+            <div class="hint" id="csfHint">Required for resignations.</div></div>
+        </div>
+      </fieldset>
+
+      <fieldset>
         <legend>Part II Signatories</legend>
         <div class="row">
           <div class="f"><label>Immediate Supervisor <span class="req">*</span></label>
@@ -194,11 +209,27 @@
 
   purpose.addEventListener('change', function () {
     document.getElementById('otherWrap').classList.toggle('hidden', purpose.value !== 'Other Mode of Separation');
+    var resign = purpose.value === 'Resignation';
+    document.getElementById('csfReq').classList.toggle('hidden', !resign);
+    document.getElementById('csfHint').textContent = resign ? 'Required for resignations.' : 'Optional for this purpose.';
   });
+
+  function $f(id) { var el = document.getElementById(id); return el.files && el.files[0] ? el.files[0] : null; }
+
+  /** Reads a File as {name, type, data(base64)}; resolves null when no file. */
+  function readFile(file) {
+    return new Promise(function (resolve, reject) {
+      if (!file) return resolve(null);
+      var r = new FileReader();
+      r.onload = function () { resolve({ name: file.name, type: file.type, data: String(r.result).split(',')[1] }); };
+      r.onerror = function () { reject(new Error('Could not read ' + file.name)); };
+      r.readAsDataURL(file);
+    });
+  }
 
   function data() {
     var o = {};
-    new FormData(form).forEach(function (v, k) { o[k] = String(v).trim(); });
+    new FormData(form).forEach(function (v, k) { if (!(v instanceof File)) o[k] = String(v).trim(); });
     ['employeeName', 'supervisorName', 'headName'].forEach(function (k) { o[k] = o[k].toUpperCase(); });
     return o;
   }
@@ -224,6 +255,10 @@
     if (o.purpose === 'Other Mode of Separation' && !o.otherPurpose) e.push('Please specify the Other Mode of Separation.');
     if (/@dap\.edu\.ph$/i.test(o.personalEmail)) e.push('Use the employee\'s personal email, not the DAP email.');
     if (o.employeeName && o.employeeName.indexOf(',') < 0) e.push('Name must follow SURNAME, FIRST NAME M.I.');
+    var nos = $f('nosFile'), csf = $f('csf10File');
+    if (!nos) e.push('Please upload the approved Notice of Separation.');
+    if (o.purpose === 'Resignation' && !csf) e.push('Please upload CS Form No. 10 (Acceptance of Resignation).');
+    [nos, csf].forEach(function (x) { if (x && x.size > 10 * 1024 * 1024) e.push(x.name + ' is larger than 10 MB.'); });
     return e;
   }
 
@@ -239,6 +274,9 @@
         return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
       }) + '</td></tr>';
     });
+    [['Notice of Separation', $f('nosFile')], ['CS Form No. 10', $f('csf10File')]].forEach(function (x) {
+      if (x[1]) rows.push('<tr><td>' + x[0] + '</td><td>📎 ' + x[1].name.replace(/[&<>"]/g, '') + '</td></tr>');
+    });
     document.getElementById('reviewTable').innerHTML = rows.join('');
     show('review');
   });
@@ -248,6 +286,11 @@
   document.getElementById('confirm').onclick = function () {
     var btn = this;
     btn.disabled = true;
+    btn.textContent = 'Uploading…';
+    var payload = data();
+    Promise.all([readFile($f('nosFile')), readFile($f('csf10File'))]).then(function (files) {
+    payload.nos = files[0];
+    payload.csf10 = files[1];
     btn.textContent = 'Submitting…';
     google.script.run
       .withSuccessHandler(function (r) {
@@ -265,7 +308,8 @@
         btn.textContent = 'Submit Clearance';
         showErrors(err.message || String(err));
       })
-      .submitIntake(data());
+      .submitIntake(payload);
+    }).catch(function (err) { btn.disabled = false; btn.textContent = 'Submit Clearance'; showErrors(err.message); });
   };
 
   document.getElementById('again').onclick = function (ev) {

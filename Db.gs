@@ -9,7 +9,7 @@ const DB_SCHEMA = {
     'Other Purpose', 'Supervisor Name', 'Supervisor Email', 'Head Name', 'Head Email',
     'Live Form ID', 'Live Form URL', 'PDF URL', 'Completed At', 'Notes',
     'Update Thread ID', 'Update Message ID', 'Final Reminder At', 'PDF ID', 'Verify Code', 'Finalized At',
-    'Revoked At', 'Revoke Reason'],
+    'Revoked At', 'Revoke Reason', 'Documents Folder URL', 'Notice of Separation URL', 'CS Form 10 URL'],
   Signatories: ['Ref No', 'Row ID', 'Part', 'Step', 'Office', 'Officer Name', 'Officer Email',
     'Alternate Name', 'Alternate Email', 'Status', 'Sent At', 'Due At', 'Extended', 'Action',
     'Action At', 'Acted By', 'Details', 'Notation', 'Last Reminder At'],

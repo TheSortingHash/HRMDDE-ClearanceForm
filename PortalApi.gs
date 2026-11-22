@@ -4,17 +4,15 @@
  * rows assigned to them (or, for HRMDD admins, the dashboard).
  */
 
-function isAdmin_(email) {
-  return !!email && settingList_('HRMDD_ADMINS').indexOf(email) >= 0;
-}
 
 function officerPortalPage_(user, p) {
   const t = HtmlService.createTemplateFromFile('Portal');
   t.user = user;
   t.isAdmin = isAdmin_(user);
-  t.isRsp = isRspUser_(user);
+  t.canDashboard = canViewDashboard_(user);
+  t.canFile = canFile_(user);
   t.focusRef = String(p.ref || '');
-  t.startTab = p.page === 'admin' && t.isAdmin ? 'admin' : 'pending';
+  t.startTab = p.page === 'admin' && t.canDashboard ? 'admin' : 'pending';
   t.intakeUrl = `${webAppUrl_()}?page=intake`;
   t.logo = ECL.BRAND.LOGO;
   t.testMode = ECL.TEST_MODE;
@@ -27,7 +25,7 @@ function officerPortalPage_(user, p) {
 
 /** Pending and recently-acted rows for the signed-in officer (dates as display strings). */
 function portalData() {
-  const user = currentUser_();
+  const user = requirePortalUser_();
   sweepOverdue_(); // rows past their deadline lock (deemed cleared) before anything is shown
   const reqs = {};
   readObjects_('Requests').forEach((r) => (reqs[r['Ref No']] = r));
@@ -76,7 +74,7 @@ function portalData() {
 }
 
 function portalAct(ref, rowId, action, details) {
-  const message = applyAction_(currentUser_(), ref, rowId, action, details);
+  const message = applyAction_(requirePortalUser_(), ref, rowId, action, details);
   return { message, data: portalData() };
 }
 
@@ -87,6 +85,7 @@ function requestView_(r) {
     purpose: r.Purpose === 'Other Mode of Separation' ? `Other: ${r['Other Purpose']}` : r.Purpose,
     effectivity: formatLongDate_(r['Date of Effectivity']), filed: fmtDate_(r['Filed At']),
     status: r.Status, stage: r.Stage, liveUrl: r['Live Form URL'], pdfUrl: r['PDF URL'] || '',
+    docsUrl: r['Documents Folder URL'] || '',
   };
 }
 
@@ -98,9 +97,9 @@ function requireAdmin_() {
   return user;
 }
 
-/** All clearances, alphabetical by employee, with each signatory's status. */
+/** All clearances, alphabetical by employee, with each signatory's status. Admins and RSP users. */
 function adminData() {
-  requireAdmin_();
+  if (!canViewDashboard_(currentUser_())) throw new Error('You do not have access to the All-Clearances dashboard.');
   sweepOverdue_();
   const bySig = {};
   readObjects_('Signatories').forEach((s) => (bySig[s['Ref No']] = bySig[s['Ref No']] || []).push(s));

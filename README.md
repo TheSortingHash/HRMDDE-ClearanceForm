@@ -29,6 +29,29 @@ Rules enforced on the server:
 - Reopening a row removes its notation, gives it a new 3-working-day deadline, sends later steps that were emailed but not acted on back to waiting, and notifies the officer and employee.
 - Notations read `Electronically signed by NAME · 23 Nov 2026, 10:14 AM`, and say "(alternate)" when an alternate signs.
 
+## Access
+
+The web app deployment is *Anyone within DAP* so Google can identify the user. What each person can see is
+decided in `Access.gs`, and every page and server call checks it:
+
+| Who | Access |
+|---|---|
+| Host account (comben@) | Everything: New Clearance Request, All Clearances, admin actions |
+| `INTAKE_USERS` (blank = host only) | New Clearance Request |
+| `HRMDD_ADMINS` | All Clearances, plus Reopen, Revoke and Generate final PDF |
+| `RSP_USERS` (selected RSP staff) | All Clearances (view only) |
+| Signatories: anyone in the Officers directory (or their alternate), or a Supervisor or Head on any clearance | Officer Portal, their own rows only |
+| Everyone else | "Access restricted" |
+
+## Separation documents
+
+A clearance can only be filed with the employee's **approved Notice of Separation** (always required) and
+**CS Form No. 10, Acceptance of Resignation** (required for resignations, optional otherwise). Both are uploaded on
+the intake form (PDF, Word, JPG or PNG, up to 10 MB) and filed in `Supporting Documents/<Ref> — <Name>/`,
+shared view-only with HRMDD admins and RSP users. The dashboard links to the folder. Because the clearance is
+initiated through the approved notice, the employee's signature line on the form reads *"Initiated through approved
+Notice of Separation (on file) · date"*.
+
 ## Emails
 
 | Email | To | Cc | Thread |
@@ -127,6 +150,17 @@ verification page shows REVOKED.
 **Testing:** file a clearance, run `testFastForwardToEVP` (clears Parts II–IV as TEST), then certify as the EVP
 (anchetam@) in the portal.
 
+## Template rework (rebuildTemplate)
+
+The cleanup also:
+- trims the grid to A1:O53 (form) and A1:F34 (instructions), so the PDF fills the page width;
+- shows the Date of Filing (row 8 was 2 px), makes room for the employee's name and notation (row 17), and
+  unhides row 49 for the EVP's signature notation;
+- removes the original drawn check boxes in Parts II and IV, which overlapped the ☐/☑ marks;
+- puts Ref. No. left of the QR code, and keeps the QR inside the form border.
+
+After pulling these changes, run **`rebuildTemplate`**. Clearances filed earlier keep the old layout.
+
 ## Build phases
 
 | Phase | Scope | Status |
@@ -165,7 +199,8 @@ Signed in as **comben@dap.edu.ph**:
 7. Load the employee directory: either fill **Settings → EMPLOYEE_SOURCE_ID** and run `importEmployees`,
    or import `Employees_import.csv` into the **Employees** sheet (File → Import → Upload → *Replace current sheet*).
 8. **Deploy → New deployment → Web app**: Execute as *Me*, Who has access *Anyone within Development Academy
-   of the Philippines*. Paste the `/exec` URL into **Settings → WEBAPP_URL**.
+   of the Philippines*. Paste the `/exec` URL into **Settings → WEBAPP_URL**. Then set **INTAKE_USERS**,
+   **RSP_USERS** and **HRMDD_ADMINS** (see Access).
 9. **Public verification deployment:** Deploy → New deployment → Web app, description *Verify*,
    Execute as *Me*, Who has access **Anyone**. Paste its `/exec` URL into **Settings → VERIFY_URL**.
    (If DAP's admin settings don't offer *Anyone*, leave VERIFY_URL blank and the QR links straight to the PDF.)

@@ -76,13 +76,13 @@
   <main>
     <h1>E-Clearance Portal</h1>
     <div class="sub">Signed in as <b><?= user ?></b>
-      <? if (isRsp) { ?> &middot; <a href="<?= intakeUrl ?>">New Clearance Request</a><? } ?></div>
+      <? if (canFile) { ?> &middot; <a href="<?= intakeUrl ?>">New Clearance Request</a><? } ?></div>
     <? if (testMode) { ?><div class="test"><b>TEST MODE</b></div><? } ?>
 
     <div class="tabs">
       <button class="tab" data-tab="pending">Pending My Action <span class="n" id="nPending">0</span></button>
       <button class="tab" data-tab="acted">Recently Acted</button>
-      <? if (isAdmin) { ?><button class="tab" data-tab="admin">All Clearances</button><? } ?>
+      <? if (canDashboard) { ?><button class="tab" data-tab="admin">All Clearances</button><? } ?>
     </div>
 
     <div id="toast" class="toast hidden"></div>
@@ -289,7 +289,8 @@
         '<td class="hide-sm">' + esc(c.effectivity) + '</td>' +
         '<td><a href="' + esc(c.liveUrl) + '" target="_blank">Live form ↗</a>' +
         (c.pdfUrl ? '<br><a href="' + esc(c.pdfUrl) + '" target="_blank">PDF ↗</a>' : '') +
-        (c.verifyUrl ? '<br><a href="' + esc(c.verifyUrl) + '" target="_blank">Verify ↗</a>' : '') + '</td></tr>' +
+        (c.verifyUrl ? '<br><a href="' + esc(c.verifyUrl) + '" target="_blank">Verify ↗</a>' : '') +
+        (c.docsUrl ? '<br><a href="' + esc(c.docsUrl) + '" target="_blank">Documents ↗</a>' : '') + '</td></tr>' +
         '<tr class="detail hidden" id="det-' + i + '"><td colspan="6">' + detailTable(c) + '</td></tr>';
     });
     $('adminTable').innerHTML = html;
@@ -312,8 +313,8 @@
 
   function detailTable(c) {
     var actions = '';
-    if (c.status === 'SIGNED') actions += '<button class="btn gold" data-finalize="1" data-ref="' + esc(c.ref) + '">Generate final PDF</button> ';
-    if (c.status === 'COMPLETED') actions += '<button class="btn ghost" data-revoke="1" data-ref="' + esc(c.ref) + '">Revoke clearance</button>';
+    if (CFG.isAdmin && c.status === 'SIGNED') actions += '<button class="btn gold" data-finalize="1" data-ref="' + esc(c.ref) + '">Generate final PDF</button> ';
+    if (CFG.isAdmin && c.status === 'COMPLETED') actions += '<button class="btn ghost" data-revoke="1" data-ref="' + esc(c.ref) + '">Revoke clearance</button>';
     return '<div class="small" style="margin-bottom:6px">' + esc(c.position) + ' · Filed ' + esc(c.filed) +
       (c.completedAt ? ' · All signed ' + esc(c.completedAt) : '') + '</div>' +
       (c.revokeReason ? '<div class="prev"><b>Revoked:</b> ' + esc(c.revokeReason) + '</div>' : '') +
@@ -324,7 +325,7 @@
           (r.details ? '<div class="prev">' + esc(r.details) + '</div>' : '') + '</td>' +
           '<td>' + chip(r.status) + '</td><td class="hide-sm small">' + esc(r.sentAt) + (r.dueAt ? ' · due ' + esc(r.dueAt) : '') + '</td>' +
           '<td class="small">' + esc(r.actedAt) + (r.actedBy ? '<br>' + esc(r.actedBy) : '') + '</td>' +
-          '<td>' + (r.reopenable ? '<button class="btn ghost" data-reopen="1" data-ref="' + esc(c.ref) + '" data-row="' + esc(r.rowId) +
+          '<td>' + (r.reopenable && CFG.isAdmin ? '<button class="btn ghost" data-reopen="1" data-ref="' + esc(c.ref) + '" data-row="' + esc(r.rowId) +
             '" data-office="' + esc(r.office) + '">Reopen</button>' : '') + '</td></tr>';
       }).join('') + '</table>';
   }

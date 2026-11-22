@@ -226,14 +226,20 @@ function renderSignatory_(ss, sig, allSigs) {
   }
 
   if (sig.Part === 'V') {
-    named_(ss, `ECL_SIG_${key}_SIGN`).setValue(sig.Notation || '')
-      .setFontSize(8).setFontStyle('italic').setFontColor(ECL.BRAND.NAVY);
+    const cell = named_(ss, `ECL_SIG_${key}_SIGN`);
+    cell.setValue(sig.Notation || '').setFontFamily('Arial').setFontSize(8).setFontStyle('italic')
+      .setFontColor(ECL.BRAND.NAVY).setHorizontalAlignment('center').setVerticalAlignment('bottom');
+    const sheet = cell.getSheet();
+    sheet.showRows(cell.getRow());
+    sheet.setRowHeight(cell.getRow(), 20);
     return;
   }
 
-  named_(ss, `ECL_SIG_${key}_CLEARED`).setValue(cleared ? '✔' : '').setHorizontalAlignment('center');
+  named_(ss, `ECL_SIG_${key}_CLEARED`).setValue(cleared ? '✔' : '').setHorizontalAlignment('center')
+    .setVerticalAlignment('middle');
   if (sig.Part === 'III') {
-    named_(ss, `ECL_SIG_${key}_NOTCLEARED`).setValue(notCleared ? '✔' : '').setHorizontalAlignment('center');
+    named_(ss, `ECL_SIG_${key}_NOTCLEARED`).setValue(notCleared ? '✔' : '').setHorizontalAlignment('center')
+      .setVerticalAlignment('middle');
   } else if (sig.Part === 'IV') {
     setBox_(named_(ss, 'ECL_IV_PENDING_CASE'), notCleared && sig.Action === 'PENDING_ADMIN_CASE');
     setBox_(named_(ss, 'ECL_IV_INVESTIGATION'), notCleared && sig.Action === 'ONGOING_INVESTIGATION');

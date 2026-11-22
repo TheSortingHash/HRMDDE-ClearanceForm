@@ -12,7 +12,7 @@
  *    is known, then its content is replaced with the exported PDF).
  */
 
-const QR_SIZE_PX = 130; // on-sheet size; the PNG itself is rendered at 8 px per module
+const QR_SIZE_PX = 120; // on-sheet size: fits rows 1–5 of the reworked template, inside the right border
 
 function finalizeClearance_(ref, actor) {
   const req = getRequest_(ref);
@@ -39,7 +39,8 @@ function finalizeClearance_(ref, actor) {
   try {
     // 2. QR code at the top right (replaces any earlier one).
     sheet.getImages().forEach((img) => { if (img.getAltTextTitle() === 'ECL_QR') img.remove(); });
-    const qr = sheet.insertImage(qrPngBlob_(qrTarget), 14, 1, 30, 2); // built-in generator (QrCode.gs)
+    // Anchored in column M, offset so the QR's right edge sits just inside column O (M+N+O = 273 px).
+    const qr = sheet.insertImage(qrPngBlob_(qrTarget), 13, 1, 273 - QR_SIZE_PX - 4, 2); // QrCode.gs
     qr.setWidth(QR_SIZE_PX).setHeight(QR_SIZE_PX).setAltTextTitle('ECL_QR')
       .setAltTextDescription(`Scan to verify ${ref}`);
     highlightStage_(ss, 'COMPLETED');

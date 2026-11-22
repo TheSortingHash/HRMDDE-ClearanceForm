@@ -4,7 +4,7 @@
  */
 function setupSystem() {
   const root = getOrCreateFolder_(DriveApp.getRootFolder(), FOLDERS.ROOT);
-  ['TEMPLATE', 'LIVE', 'COMPLETED'].forEach((k) => {
+  ['TEMPLATE', 'LIVE', 'COMPLETED', 'DOCS'].forEach((k) => {
     const f = getOrCreateFolder_(root, FOLDERS[k]);
     setProp_('FOLDER_' + k, f.getId());
   });
@@ -28,6 +28,8 @@ function checkConfig() {
   else if (/\/dev$/.test(app)) problems.push('Settings → WEBAPP_URL is the /dev test URL; only project editors can open it. Use the /exec URL.');
   else if (!/^https:\/\/script\.google\.com\/.+\/exec$/.test(app)) problems.push(`Settings → WEBAPP_URL should end in /exec (now: ${app}).`);
   const ver = String(setting_('VERIFY_URL') || '').trim();
+  if (!ver) problems.push('Settings → VERIFY_URL is blank, so QR codes link straight to the PDF and cannot show a revocation. ' +
+    'Create the "Anyone" Verify deployment and paste its /exec URL.');
   if (ver && !/\/exec$/.test(ver)) problems.push(`Settings → VERIFY_URL should end in /exec (now: ${ver}).`);
   if (ver && ver === app) problems.push('VERIFY_URL is the same as WEBAPP_URL. Use the separate "Anyone" deployment for verification.');
   console.log(problems.length ? 'CONFIG PROBLEMS:\n- ' + problems.join('\n- ') : 'Configuration OK.');
@@ -133,7 +135,8 @@ const SEED_DATA_ = {
     ['213147', 'ANCHETA, MARIEL LOUISE P', 'anchetam@dap.edu.ph', '', '', true],
   ],
   Settings: [
-    ['RSP_USERS', 'comben@dap.edu.ph, anchetad@dap.edu.ph', 'DAP accounts allowed to use the intake web app (comma-separated).'],
+    ['INTAKE_USERS', '', 'Besides the host account, DAP accounts allowed to file new clearance requests (blank = host only).'],
+    ['RSP_USERS', '', 'Selected HRMDD-RSP accounts that may view the All-Clearances dashboard (view only).'],
     ['HRMDD_ADMINS', 'comben@dap.edu.ph', 'DAP accounts that see the All-Clearances dashboard and can reopen rows.'],
     ['WEBAPP_URL', '', 'The web app /exec URL used in email links. Leave blank to detect it automatically.'],
     ['VERIFY_URL', '', 'The /exec URL of the public verification deployment (access: Anyone). Blank = the QR code links straight to the PDF.'],

@@ -53,6 +53,9 @@ function createClearance_(data, filedBy) {
     fillLiveForm_(ss, req, signatories);
     SpreadsheetApp.flush();
 
+    // 1b. Separation documents, filed in Drive (Supporting Documents/<Ref> — <Name>).
+    const docs = saveSeparationDocs_(ref, data);
+
     // 2. View-only sharing, without Drive's own notification emails.
     const viewers = [data.personalEmail];
     signatories.forEach((s) => { viewers.push(s.email); if (s.alternate) viewers.push(s.alternate); });
@@ -70,6 +73,7 @@ function createClearance_(data, filedBy) {
       'Supervisor Name': data.supervisorName, 'Supervisor Email': data.supervisorEmail,
       'Head Name': data.headName, 'Head Email': data.headEmail,
       'Live Form ID': file.getId(), 'Live Form URL': ss.getUrl(),
+      'Documents Folder URL': docs.folderUrl, 'Notice of Separation URL': docs.nosUrl, 'CS Form 10 URL': docs.csf10Url,
     }]);
     appendObjects_('Signatories', signatories.map((s) => ({
       'Ref No': ref, 'Row ID': s.rowId, Part: s.part, Step: s.step, Office: s.office,
@@ -112,4 +116,26 @@ function shareViewOnly_(fileId, emails) {
 
 function copyList_() {
   return ECL.TEST_MODE ? [] : [ECL.CLEARANCE_GROUP];
+}
+
+/**
+ * Saves the uploaded Notice of Separation and CS Form No. 10 in a per-clearance folder.
+ * The folder is shared (view, no notification) with HRMDD admins and RSP users.
+ */
+function saveSeparationDocs_(ref, data) {
+  const parent = DriveApp.getFolderById(prop_('FOLDER_DOCS'));
+  const folder = parent.createFolder(`${ref} — ${data.employeeName}`);
+  const save = (u, label) => {
+    if (!u) return '';
+    const ext = (String(u.name).match(/\.[A-Za-z0-9]{1,5}$/) || [''])[0];
+    const blob = Utilities.newBlob(Utilities.base64Decode(u.data), u.type, `${ref} — ${label}${ext}`);
+    return folder.createFile(blob).getUrl();
+  };
+  const result = {
+    folderUrl: folder.getUrl(),
+    nosUrl: save(data.nos, 'Notice of Separation'),
+    csf10Url: save(data.csf10, 'CS Form No. 10 - Acceptance of Resignation'),
+  };
+  shareViewOnly_(folder.getId(), settingList_('HRMDD_ADMINS').concat(settingList_('RSP_USERS')));
+  return result;
 }
