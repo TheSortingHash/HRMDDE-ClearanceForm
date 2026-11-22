@@ -94,7 +94,10 @@ function parseCommand_(subject, plainBody) {
   // Free-text details = everything typed above the code block, minus the prompt line.
   // If the client dropped the pre-filled body (code block missing), keep what the officer
   // typed, minus quoted lines and the "On ... wrote:" header.
-  const cut = body.indexOf('----- E-CLEARANCE CODE');
+  // The marker is matched loosely: the Gmail mobile app may glue the dashes to the typed
+  // text and break the line before "E-CLEARANCE CODE".
+  const marker = body.match(/(-{3,}\s*)?E-CLEARANCE\s+CODE/i);
+  const cut = marker ? marker.index : -1;
   let details = cut >= 0 ? body.slice(0, cut) : body
     .split('\n').filter((l) => !/^\s*>/.test(l)).join('\n')
     .replace(/\nOn .+wrote:\s*$/s, '');
