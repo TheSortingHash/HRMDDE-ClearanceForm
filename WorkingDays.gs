@@ -52,3 +52,16 @@ function workingDaysLeft_(due, now, holidays) {
   }
   return left;
 }
+
+/** Working days after `from` up to and including `to` (by calendar day, Asia/Manila). */
+function workingDaysBetween_(from, to, holidays) {
+  const hol = holidays || holidaySet_();
+  const end = dayKey_(to);
+  let d = new Date(`${dayKey_(from)}T12:00:00+08:00`);
+  let n = 0;
+  while (true) {
+    d = new Date(d.getTime() + 24 * 3600 * 1000);
+    if (dayKey_(d) > end) return n;
+    if (isWorkingDay_(d, hol)) n++;
+  }
+}

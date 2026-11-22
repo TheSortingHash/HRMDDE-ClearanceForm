@@ -81,14 +81,32 @@ in this repository.
 - Intake is a DAP-branded web app used by HRMDD-RSP. Office of Assignment is free text for now.
   The prototype covers plantilla personnel only.
 
+## Daily checks (Phase 3)
+
+`runDailyChecks` runs every day at 7 AM (Asia/Manila). `setupSystem` installs it, and `installTriggers` re-installs it.
+
+| Check | When | What happens |
+|---|---|---|
+| Deemed clearance (Parts II–III, §III.E) | Any day, once a row is past its due date (3 working days, or 7 if extended) and still not acted on | The row becomes **Deemed Cleared**, with the notation "Deemed cleared (MC-2026-014 §III.E)" on the form. The officer is emailed (cc alternate + clearance@) with the §III.E.4 note that later-found accountabilities are not waived. The employee is told in the update thread, and routing moves on. Not Cleared rows are never deemed. |
+| Day-2 reminder (Parts II–III) | Working days, when 1 working day is left | One reminder per officer, listing all their rows. It is sent again if the deadline was extended. |
+| Parts IV–V reminder | Working days, every 2 working days while pending | Reminder email (cc clearance@). These Parts are never deemed cleared. |
+| 30-day reminder (§III.D.3) | First working day on or after Date of Effectivity + 25 days, once per clearance | A final reminder to every Part II–IV signatory still pending or Not Cleared, and a note to the employee in the update thread listing what is still open. |
+
+Officers can still act after their due date until the next 7 AM run applies deemed clearance.
+
+**Testing without waiting days** (only while `TEST_MODE` is on; each uses the most recent in-progress clearance):
+`testReminders` (makes the current rows due for a reminder), `testDeemedClearance` (makes current Part II–III rows
+overdue), `testFinalReminder` (moves the Date of Effectivity 25 days back). Each runs the daily checks immediately.
+Reminders only go out on working days, so run them on a weekday.
+
 ## Build phases
 
 | Phase | Scope | Status |
 |---|---|---|
 | 0 | Gmail button spike | Done (superseded by the Officer Portal) |
 | 1 | Master DB, template cleanup, branded intake web app, live form copy and sharing | Done |
-| 2 | Officer Portal and All-Clearances dashboard, routing II → III → IV → V, notations, employee updates, accountability and hold threads, OB extension, admin reopen | **Ready to test** |
-| 3 | Reminders, deemed clearance (Parts II–III), 30-day reminder (the working-day calculator and OB extension are already in Phase 2) | — |
+| 2 | Officer Portal and All-Clearances dashboard, routing II → III → IV → V, notations, employee updates, accountability and hold threads, OB extension, admin reopen | Done |
+| 3 | Daily checks: reminders, deemed clearance (Parts II–III), 30-day reminder | **Ready to test** (`release-02`) |
 | 4 | PDF export, QR code, verification page | — |
 
 ## Setup (fresh Apps Script project)
@@ -103,9 +121,10 @@ Signed in as **comben@dap.edu.ph**:
 1. Turn on the **Google Apps Script API** at <https://script.google.com/home/usersettings> (the GitHub Assistant needs it).
 2. Create a new project at <https://script.google.com> → New project, and name it e.g. *DAP E-Clearance System*.
 3. In the GitHub Assistant bar, pick repository **TheSortingHash/HRMDDE-ClearanceForm**, branch
-   **claude/bold-knuth-hixrv8**, then **Pull**. You should get 14 script/HTML files plus `appsscript.json`:
-   `Clearance, Config, Db, Directory, EmailTemplate, Notify, PortalApi, Setup, Template, WebApp, Workflow,
-   WorkingDays` (.gs) and `Intake, Portal` (.html). If the editor still shows the default `Code.gs`, delete it.
+   the newest **release-NN** branch, then **Pull** (the GitHub Assistant fails when re-pulling a branch it has
+   already pulled, so each update is published as a new release branch). You should get these `.gs` files:
+   `Clearance, Config, Db, Directory, EmailTemplate, Notify, PortalApi, Scheduler, Setup, Template, TestTools,
+   WebApp, Workflow, WorkingDays`, plus `Intake` and `Portal` (.html) and `appsscript.json`. If the editor still shows the default `Code.gs`, delete it.
 4. Project Settings: tick **Show "appsscript.json"**, and check the time zone is *(GMT+08:00) Manila*.
    Under **Services** you should see **Drive API** and **Gmail API**, which are turned on by `appsscript.json`.
 5. comben@ must be able to open the original CS Form No. 7 sheet (`18c6WDzKDde3Ja8WZ0KfpvgcF1skEQ_eaEcWg1dc6SBs`).
@@ -120,6 +139,10 @@ Signed in as **comben@dap.edu.ph**:
 8. **Deploy → New deployment → Web app**: Execute as *Me*, Who has access *Anyone within Development Academy
    of the Philippines*. Paste the `/exec` URL into **Settings → WEBAPP_URL**.
 9. Fill in **Holidays** for correct due dates.
+10. Check **Triggers** (clock icon) shows `runDailyChecks`, daily at 7–8 AM.
+
+Updating an existing project: pull the new release branch, then run `setupSystem` once. It adds any new
+DB columns and settings and re-installs the trigger, without touching your data.
 
 Pages: `/exec` (intake for RSP users, portal for everyone else), `/exec?page=officer`, `/exec?page=admin`.
 

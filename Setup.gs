@@ -12,6 +12,7 @@ function setupSystem() {
 
   setupDb_(root);
   if (!prop_('TEMPLATE_ID')) buildTemplate_();
+  installTriggers();
 
   console.log('Root folder:  ' + root.getUrl());
   console.log('Database:     ' + db_().getUrl());

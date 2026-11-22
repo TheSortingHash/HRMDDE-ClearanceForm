@@ -106,42 +106,100 @@ function sendUpdate_(req, title, inner) {
 
 /* ------------------------------------------------------------------ to signatories */
 
-/** One email per officer listing all of their rows that are now due (e.g. 3 rows for one officer). */
+/**
+ * One email per officer listing all of their rows (e.g. 3 rows for one officer).
+ * opts.kind: 'REQUEST' (default) | 'REMINDER' | 'FINAL' (5 days before the 30-day deadline).
+ * opts.reopenReason: shown when HRMDD reopened the row. opts.finalDeadline: Date for 'FINAL'.
+ * `due` is used when a row has no Due At of its own.
+ */
 function notifyOfficers_(req, sigs, due, opts) {
   const o = opts || {};
+  const kind = o.kind || 'REQUEST';
   const byOfficer = {};
   sigs.forEach((s) => (byOfficer[s['Officer Email']] = byOfficer[s['Officer Email']] || []).push(s));
 
   Object.keys(byOfficer).forEach((email) => {
     const rows = byOfficer[email];
-    const parts = Array.from(new Set(rows.map((s) => s.Part)));
-    const deemed = parts.every((p) => DEEMED_PARTS.indexOf(p) >= 0);
-    const offices = rows.map((s) => `Part ${s.Part} &middot; ${escapeHtml_(s.Office)}`).join('<br>');
+    const deemed = rows.every((s) => DEEMED_PARTS.indexOf(s.Part) >= 0);
+    const rowDue = (s) => (s['Due At'] instanceof Date ? s['Due At'] : due);
+    const offices = rows.map((s) => `Part ${s.Part} &middot; ${escapeHtml_(s.Office)}` +
+      (s.Status === SIG_STATUS.NOT_CLEARED ? ' <span style="color:#B3261E;">(marked Not Cleared — please update once settled)</span>'
+        : rowDue(s) ? ` <span style="color:#555;">&mdash; act by <b>${formatLongDate_(rowDue(s))}</b>${isTrue_(s.Extended) ? ' (extended)' : ''}</span>` : '')).join('<br>');
+
+    const intro = {
+      REQUEST: '<p>The clearance below is now due for your action.</p>',
+      REMINDER: '<p><b>Reminder:</b> the clearance below is still awaiting your action.</p>',
+      FINAL: `<p><b>Final reminder:</b> the 30-day period after separation for settling accountabilities ends on
+<b>${formatLongDate_(o.finalDeadline)}</b> (MC-2026-014 &sect;III.D.3). Accountabilities still unsettled after that date
+are deducted from the employee's remaining pay. Please record your action on the items below.</p>`,
+    }[kind];
+    const note = kind === 'FINAL' ? ''
+      : `<p style="font-size: 14px;">${deemed
+        ? 'If no action is recorded by the date shown, the employee will be <b>deemed cleared</b> by your office (MC-2026-014 &sect;III.E). If you are on official business, leave or travel, you may extend this to 7 working days in the portal.'
+        : 'Please act within three (3) working days (MC-2026-014 &sect;III.B.2).'}</p>`;
 
     const inner = `
 <p>Dear <b>${escapeHtml_(rows[0]['Officer Name'])}</b>,</p>
 ${o.reopenReason ? `<div style="background:#fff8e1; border-left:5px solid ${ECL.BRAND.GOLD}; padding:12px; margin-bottom:12px;">
 <b>Reopened by HRMDD.</b> Reason: ${escapeHtml_(o.reopenReason)}</div>` : ''}
-<p>The clearance below is now due for your action.</p>
+${intro}
 ${detailsTable_(employeeRows_(req))}
 <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
-  <tr style="background-color: #f2f2f2;"><td style="padding: 10px; border: 1px solid #ddd; font-weight: bold; width: 40%;">For your action</td>
+  <tr style="background-color: #f2f2f2;"><td style="padding: 10px; border: 1px solid #ddd; font-weight: bold; width: 30%;">For your action</td>
     <td style="padding: 10px; border: 1px solid #ddd;">${offices}</td></tr>
-  <tr><td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">Please act by</td>
-    <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold; color: ${ECL.BRAND.NAVY};">${formatLongDate_(due)}
-    <span style="font-weight: normal; color: #555;">(3 working days)</span></td></tr>
 </table>
-<p style="font-size: 14px;">${deemed
-    ? 'If no action is recorded by then, the employee will be <b>deemed cleared</b> by your office (MC-2026-014 &sect;III.E). If you are on official business, leave or travel, you may extend this to 7 working days in the portal.'
-    : 'Please act within three (3) working days (MC-2026-014 &sect;III.B.2).'}</p>
+${note}
 ${linkButton_(portalUrl_(req['Ref No']), 'Open in E-Clearance Portal')}
 ${portalNoteHtml_()}`;
 
     // The Supervisor follows progress in the single update thread instead of every request.
     const cc = rows.map((s) => s['Alternate Email']).concat(copyList_());
-    sendMail_(email, subject_(`Action needed: ${req['Employee Name (HRIS)']} (${req['Ref No']})`),
-      'Clearance Request', inner, { cc });
+    const prefix = { REQUEST: 'Action needed', REMINDER: 'Reminder', FINAL: 'Final reminder' }[kind];
+    sendMail_(email, subject_(`${prefix}: ${req['Employee Name (HRIS)']} (${req['Ref No']})`),
+      { REQUEST: 'Clearance Request', REMINDER: 'Clearance Reminder', FINAL: 'Final Reminder' }[kind], inner, { cc });
   });
+}
+
+/** §III.E.3: HRMDD informs the clearing office that the employee is deemed cleared (cc clearance@). */
+function notifyDeemedOfficer_(req, sig) {
+  const inner = `
+<p>Dear <b>${escapeHtml_(sig['Officer Name'])}</b>,</p>
+<p>No action was recorded by your office on the clearance below within the prescribed period
+(due ${formatLongDate_(sig['Due At'])}). Under MC-2026-014 &sect;III.E, the employee is <b>deemed cleared</b>
+by <b>${escapeHtml_(sig.Office)}</b>.</p>
+${detailsTable_(employeeRows_(req))}
+<p style="font-size: 13px; color: #555;">This deemed clearance applies only to your office and is without prejudice to the
+subsequent discovery of any outstanding accountability, including unreturned government property, unsettled financial
+obligations, cash advances, records deficiencies or audit findings. It does not waive, condone or extinguish any valid
+claim of DAP (MC-2026-014 &sect;III.E.4). Please coordinate with HRMDD if an accountability is later found.</p>`;
+  const cc = [sig['Alternate Email']].concat(copyList_());
+  sendMail_(sig['Officer Email'], subject_(`Deemed cleared: ${req['Employee Name (HRIS)']} — ${sig.Office} (${req['Ref No']})`),
+    'Deemed Cleared', inner, { cc, replyTo: hrmddReplyTo_() });
+}
+
+function notifyDeemedEmployee_(req, sig) {
+  const inner = `
+<p>Dear <b>${escapeHtml_(req['Employee Name (HRIS)'])}</b>,</p>
+<p><b>${escapeHtml_(sig.Office)}</b> did not act on your clearance (${req['Ref No']}) within the prescribed period,
+so you are <b>deemed cleared</b> by that office (MC-2026-014 &sect;III.E).</p>
+<p style="font-size: 13px; color: #555;">A deemed clearance does not waive any accountability that may be found later (&sect;III.E.4).</p>
+${linkButton_(req['Live Form URL'], 'View My Live Clearance Form')}`;
+  sendUpdate_(req, `Deemed Cleared: ${sig.Office}`, inner);
+}
+
+/** Employee side of the 30-day reminder (update thread). */
+function notifyFinalEmployee_(req, pending, deadline) {
+  const list = pending.map((s) => `<li>Part ${s.Part} &middot; ${escapeHtml_(s.Office)} &mdash; ${s.Status === SIG_STATUS.NOT_CLEARED
+    ? '<b style="color:#B3261E;">Not Cleared</b>' : 'awaiting action'}</li>`).join('');
+  const inner = `
+<p>Dear <b>${escapeHtml_(req['Employee Name (HRIS)'])}</b>,</p>
+<p>The 30-day period after your separation for settling accountabilities ends on <b>${formatLongDate_(deadline)}</b>
+(MC-2026-014 &sect;III.D.3). The following are still open on your clearance (${req['Ref No']}):</p>
+<ul style="line-height: 1.6;">${list}</ul>
+<p>Accountabilities still unsettled after that date will be deducted from your remaining pay. Please coordinate
+with the offices concerned.</p>
+${linkButton_(req['Live Form URL'], 'View My Live Clearance Form')}`;
+  sendUpdate_(req, 'Final Reminder: 5 Days Left', inner);
 }
 
 /* ------------------------------------------------------------------ to the employee */
