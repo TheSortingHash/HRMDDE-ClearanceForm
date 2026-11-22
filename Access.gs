@@ -34,6 +34,7 @@ function canViewDashboard_(email) {
 function isSignatory_(email) {
   if (!email) return false;
   const match = (a, b) => String(a || '').toLowerCase() === email || String(b || '').toLowerCase() === email;
+  if (demoEmails_().indexOf(email) >= 0) return true;
   return readObjects_('Officers').some((o) => match(o['Officer Email'], o['Alternate Email'])) ||
     readObjects_('Signatories').some((s) => match(s['Officer Email'], s['Alternate Email']));
 }

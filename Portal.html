@@ -77,7 +77,7 @@
     <h1>E-Clearance Portal</h1>
     <div class="sub">Signed in as <b><?= user ?></b>
       <? if (canFile) { ?> &middot; <a href="<?= intakeUrl ?>">New Clearance Request</a><? } ?></div>
-    <? if (testMode) { ?><div class="test"><b>TEST MODE</b></div><? } ?>
+    <? if (testMode) { ?><div class="test"><b>TEST MODE</b></div><? } else if (demo) { ?><div class="test"><b>DEMO MODE</b> &middot; clearing offices are routed to demo participants</div><? } ?>
 
     <div class="tabs">
       <button class="tab" data-tab="pending">Pending My Action <span class="n" id="nPending">0</span></button>
@@ -111,7 +111,7 @@
 </div>
 
 <script>
-  var CFG = <?!= JSON.stringify({ isAdmin: isAdmin, focusRef: focusRef, startTab: startTab }).replace(/</g, '\\u003c') ?>;
+  var CFG = <?!= JSON.stringify({ isAdmin: isAdmin, focusRef: focusRef, startTab: startTab, demo: demo }).replace(/</g, '\\u003c') ?>;
   var MIN = 25;
   var adminCache = null;
 
@@ -303,6 +303,16 @@
     $('adminTable').querySelectorAll('button[data-finalize]').forEach(function (b) {
       b.onclick = function () { finalizeNow(b.dataset.ref, b); };
     });
+    $('adminTable').querySelectorAll('button[data-ff]').forEach(function (b) {
+      b.onclick = function () {
+        if (!confirm('Demo: clear every row before Part ' + b.dataset.ff + ' on ' + b.dataset.ref + ' as (DEMO)?')) return;
+        b.disabled = true; b.textContent = 'Working…';
+        google.script.run
+          .withSuccessHandler(function (res) { toast(res.message, true); adminCache = res.data; renderAdmin(res.data); loadPortal(); })
+          .withFailureHandler(function (e) { toast(e.message || String(e)); renderAdmin(adminCache); })
+          .adminFastForward(b.dataset.ref, b.dataset.ff);
+      };
+    });
     $('adminTable').querySelectorAll('button[data-revoke]').forEach(function (b) {
       b.onclick = function () { openRevoke(b.dataset.ref); };
     });
@@ -314,6 +324,12 @@
   function detailTable(c) {
     var actions = '';
     if (CFG.isAdmin && c.status === 'SIGNED') actions += '<button class="btn gold" data-finalize="1" data-ref="' + esc(c.ref) + '">Generate final PDF</button> ';
+    if (CFG.isAdmin && CFG.demo && c.status === 'IN_PROGRESS') {
+      var order = ['II', 'III', 'IV', 'V'];
+      ['III', 'IV', 'V'].filter(function (p) { return order.indexOf(p) > order.indexOf(c.stage); }).forEach(function (p) {
+        actions += '<button class="btn ghost" data-ff="' + p + '" data-ref="' + esc(c.ref) + '">Demo: skip to Part ' + p + (p === 'V' ? ' (EVP)' : '') + '</button> ';
+      });
+    }
     if (CFG.isAdmin && c.status === 'COMPLETED') actions += '<button class="btn ghost" data-revoke="1" data-ref="' + esc(c.ref) + '">Revoke clearance</button>';
     return '<div class="small" style="margin-bottom:6px">' + esc(c.position) + ' · Filed ' + esc(c.filed) +
       (c.completedAt ? ' · All signed ' + esc(c.completedAt) : '') + '</div>' +

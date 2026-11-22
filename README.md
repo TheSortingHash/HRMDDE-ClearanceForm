@@ -161,6 +161,29 @@ The cleanup also:
 
 After pulling these changes, run **`rebuildTemplate`**. Clearances filed earlier keep the old layout.
 
+## Demo mode (presentations)
+
+**Before the demo** (in the *DAP E-Clearance DB*):
+1. **Demo** sheet: in **Demo Email**, type each participant's **DAP** email next to the office they will play
+   (Part III rows, IV-a Legal, V-EVP). Use *Participant / Notes* for their name. Rows left blank go to the real
+   officer email in the Officers sheet. Demo emails must be @dap.edu.ph accounts, because the portal requires
+   a DAP sign-in.
+2. **Settings → DEMO_MODE** = `TRUE`. (While `TEST_MODE` is on in Config.gs, demo mode is always on and
+   clearance@ is not copied.)
+3. Run **`checkConfig`**. The log lists where each office will be routed.
+4. Supervisor and Head of Office are chosen on the intake form. Pick participants from the employee list.
+
+**During the demo:**
+- File the clearance as comben@ (Notice of Separation upload). Participants receive "Action needed" emails and
+  act in the portal.
+- To jump ahead: **All Clearances** → click the clearance → **Demo: skip to Part III / Part IV / Part V (EVP)**.
+  Earlier rows are cleared and marked **(DEMO)** on the form, and the next participant is emailed immediately.
+- Typo in a demo email? Fix it in the Demo sheet and run **`refreshDemoAssignments`**. Rows not yet acted on move to
+  the new email, and the request is re-sent.
+
+**After the demo:** set **DEMO_MODE** = `FALSE`. New clearances go back to the Officers sheet. Demo clearances
+stay in the DB and on the dashboard. Revoke or ignore them as needed.
+
 ## Build phases
 
 | Phase | Scope | Status |
@@ -185,8 +208,8 @@ Signed in as **comben@dap.edu.ph**:
 3. In the GitHub Assistant bar, pick repository **TheSortingHash/HRMDDE-ClearanceForm**, branch
    the newest **release-NN** branch, then **Pull** (the GitHub Assistant fails when re-pulling a branch it has
    already pulled, so each update is published as a new release branch). You should get these `.gs` files:
-   `Clearance, Config, Db, Directory, EmailTemplate, Finalize, Notify, PortalApi, QrCode, Scheduler, Setup, Template,
-   TestTools, Verify, WebApp, Workflow, WorkingDays`, plus `Intake` and `Portal` (.html) and `appsscript.json`. If the editor still shows the default `Code.gs`, delete it.
+   `Access, Clearance, Config, Db, Demo, Directory, EmailTemplate, Finalize, Notify, PortalApi, QrCode, Scheduler,
+   Setup, Template, TestTools, Verify, WebApp, Workflow, WorkingDays`, plus `Intake` and `Portal` (.html) and `appsscript.json`. If the editor still shows the default `Code.gs`, delete it.
 4. Project Settings: tick **Show "appsscript.json"**, and check the time zone is *(GMT+08:00) Manila*.
    Under **Services** you should see **Drive API** and **Gmail API**, which are turned on by `appsscript.json`.
 5. comben@ must be able to open the original CS Form No. 7 sheet (`18c6WDzKDde3Ja8WZ0KfpvgcF1skEQ_eaEcWg1dc6SBs`).

@@ -11,6 +11,7 @@ function officerPortalPage_(user, p) {
   t.isAdmin = isAdmin_(user);
   t.canDashboard = canViewDashboard_(user);
   t.canFile = canFile_(user);
+  t.demo = demoEnabled_();
   t.focusRef = String(p.ref || '');
   t.startTab = p.page === 'admin' && t.canDashboard ? 'admin' : 'pending';
   t.intakeUrl = `${webAppUrl_()}?page=intake`;
@@ -129,6 +130,7 @@ function adminData() {
   }).sort((a, b) => a.employee.localeCompare(b.employee));
 
   return {
+    demo: demoEnabled_(),
     list,
     links: {
       root: folder('ROOT'), live: folder('LIVE'), completed: folder('COMPLETED'), template: folder('TEMPLATE'),

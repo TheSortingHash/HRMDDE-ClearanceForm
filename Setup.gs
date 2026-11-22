@@ -32,6 +32,12 @@ function checkConfig() {
     'Create the "Anyone" Verify deployment and paste its /exec URL.');
   if (ver && !/\/exec$/.test(ver)) problems.push(`Settings → VERIFY_URL should end in /exec (now: ${ver}).`);
   if (ver && ver === app) problems.push('VERIFY_URL is the same as WEBAPP_URL. Use the separate "Anyone" deployment for verification.');
+  if (demoEnabled_()) {
+    const o = demoOverrides_();
+    const rows = SIGNATORY_ROWS.filter((r) => r.source === 'directory');
+    console.log('DEMO MODE is ON. Clearing offices will be routed to:\n' + rows.map((r) =>
+      `  ${r.rowId.padEnd(7)} ${o[r.rowId] ? o[r.rowId].email : '(real officer email — no Demo Email set)'}`).join('\n'));
+  }
   console.log(problems.length ? 'CONFIG PROBLEMS:\n- ' + problems.join('\n- ') : 'Configuration OK.');
   return problems;
 }
@@ -108,7 +114,9 @@ function ensureSettings_(sh) {
 }
 
 function seedTable_(name, sh) {
-  const rows = name === 'Settings' ? [] : SEED_DATA_[name];
+  const rows = name === 'Settings' ? [] : name === 'Demo'
+    ? SEED_DATA_.Officers.map((o) => [o[0], o[1], o[3], o[4], '', '', ''])
+    : SEED_DATA_[name];
   if (name === 'Settings') ensureSettings_(sh);
   if (name === 'Employees') sh.getRange('A:A').setNumberFormat('@'); // keep HRIS numbers as text
   if (rows && rows.length) sh.getRange(2, 1, rows.length, rows[0].length).setValues(rows);
@@ -139,6 +147,7 @@ const SEED_DATA_ = {
     ['RSP_USERS', '', 'Selected HRMDD-RSP accounts that may view the All-Clearances dashboard (view only).'],
     ['HRMDD_ADMINS', 'comben@dap.edu.ph', 'DAP accounts that see the All-Clearances dashboard and can reopen rows.'],
     ['WEBAPP_URL', '', 'The web app /exec URL used in email links. Leave blank to detect it automatically.'],
+    ['DEMO_MODE', 'FALSE', 'TRUE = route new clearances to the emails in the Demo sheet and allow dashboard fast-forward.'],
     ['VERIFY_URL', '', 'The /exec URL of the public verification deployment (access: Anyone). Blank = the QR code links straight to the PDF.'],
     ['PDF_PAPER_SIZE', 'oficio', 'Paper size of the final PDF: oficio (8.5" x 13", default), legal or A4.'],
     ['EMPLOYEE_SOURCE_ID', '', 'Spreadsheet ID of the E-Payment Hub (source of the employee directory for importEmployees).'],

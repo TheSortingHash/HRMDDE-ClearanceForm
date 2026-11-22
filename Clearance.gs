@@ -4,6 +4,7 @@
 
 /** Builds the 13 signatory rows for a request from the intake data and the Officers directory. */
 function buildSignatories_(data, officers) {
+  const demo = demoOverrides_(); // Demo sheet emails while DEMO_MODE is on
   const byRow = {};
   officers.filter((o) => o.Active === true || String(o.Active).toUpperCase() === 'TRUE')
     .forEach((o) => (byRow[o['Row ID']] = o));
@@ -25,6 +26,7 @@ function buildSignatories_(data, officers) {
       email: String(o['Officer Email']).trim().toLowerCase(),
       alternate: String(o['Alternate Email'] || '').trim().toLowerCase(),
       alternateName: String(o['Alternate Name'] || '').trim(),
+      ...(demo[row.rowId] ? { email: demo[row.rowId].email, alternate: demo[row.rowId].alternate, alternateName: '' } : {}),
     };
   });
   if (missing.length) {

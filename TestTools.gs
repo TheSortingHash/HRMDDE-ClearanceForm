@@ -75,19 +75,5 @@ function testFinalReminder() {
  */
 function testFastForwardToEVP() {
   const req = testLatestRef_();
-  const sigs = getSignatories_(req['Ref No']);
-  const ss = SpreadsheetApp.openById(req['Live Form ID']);
-  const now = new Date();
-  sigs.filter((s) => s.Part !== 'V' && !isDone_(s)).forEach((s) => {
-    const changes = {
-      Status: SIG_STATUS.CLEARED, Action: 'CLEARED', 'Action At': now, 'Acted By': 'TEST',
-      Details: '', Notation: `Electronically signed by ${s['Officer Name']} · ${fmtDateTime_(now)} (TEST)`,
-    };
-    updateRow_('Signatories', s._row, changes);
-    Object.assign(s, changes);
-    renderSignatory_(ss, s, sigs);
-  });
-  audit_(req['Ref No'], 'TEST', 'TEST_FAST_FORWARD', 'Parts II–IV cleared for testing');
-  advance_(req['Ref No']);
-  console.log('Parts II–IV cleared. The EVP can now certify in the portal.');
+  console.log(fastForward_(req['Ref No'], 'V', 'TEST'));
 }

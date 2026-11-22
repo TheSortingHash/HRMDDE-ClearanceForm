@@ -17,6 +17,8 @@ const DB_SCHEMA = {
     'Alternate Name', 'Alternate Email', 'Active'],
   // Employee directory for intake autofill (same layout as the E-Payment Hub Payee_Database).
   Employees: ['HRIS Number', 'Employee Name (HRIS)', 'DAP Email', 'Position', 'Office', 'Active'],
+  // Demo mode: participants' emails per clearing office (used while Settings → DEMO_MODE is TRUE).
+  Demo: ['Row ID', 'Part', 'Office / Unit', 'Officer Name (shown on form)', 'Demo Email', 'Demo Alternate Email', 'Participant / Notes'],
   Holidays: ['Date', 'Name', 'Type'],
   AuditLog: ['Timestamp', 'Ref No', 'Actor', 'Event', 'Details'],
 };
