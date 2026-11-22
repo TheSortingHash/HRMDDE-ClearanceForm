@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<style>
+  :root { --navy: #1C2790; --gold: #CDAE2C; --ink: #333; --line: #ddd; --muted: #666; --err: #B3261E; --bg: #f4f5f9; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); font-family: Arial, sans-serif; color: var(--ink); font-size: 15px; }
+  .wrap { max-width: 760px; margin: 24px auto; background: #fff; border: 1px solid var(--line); }
+  header { background: var(--navy); padding: 20px; text-align: center; border-bottom: 5px solid var(--gold); }
+  header img { width: 360px; max-width: 100%; }
+  main { padding: 24px 28px 32px; }
+  h1 { color: var(--navy); text-align: center; font-size: 22px; text-transform: uppercase; margin: 4px 0 6px; }
+  .sub { text-align: center; color: var(--muted); font-size: 13px; margin-bottom: 18px; }
+  .test { background: #fff8e1; border: 1px solid var(--gold); padding: 8px 12px; font-size: 13px; border-radius: 4px; margin-bottom: 16px; }
+  fieldset { border: 1px solid var(--line); border-left: 5px solid var(--gold); border-radius: 4px; padding: 14px 16px 6px; margin: 0 0 18px; }
+  legend { color: var(--navy); font-weight: bold; padding: 0 6px; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .f { flex: 1 1 220px; margin-bottom: 12px; }
+  .f.sm { flex: 0 1 110px; }
+  label { display: block; font-weight: bold; font-size: 13px; margin-bottom: 4px; }
+  label .req { color: var(--err); }
+  input, select { width: 100%; padding: 9px 10px; border: 1px solid #bbb; border-radius: 4px; font-size: 15px; font-family: inherit; }
+  input:focus, select:focus { outline: 2px solid var(--gold); border-color: var(--navy); }
+  input.upper { text-transform: uppercase; }
+  .hint { color: var(--muted); font-size: 12px; margin-top: 3px; }
+  .hidden { display: none; }
+  .errors { background: #fdecea; border-left: 5px solid var(--err); padding: 10px 14px; margin-bottom: 16px; white-space: pre-line; font-size: 14px; }
+  .actions { text-align: center; margin-top: 8px; }
+  button { background: var(--gold); color: var(--navy); border: 0; padding: 12px 26px; border-radius: 5px; font-weight: bold; font-size: 15px; cursor: pointer; }
+  button.secondary { background: #e8e8ee; color: var(--ink); }
+  button:disabled { opacity: .6; cursor: wait; }
+  table.review { width: 100%; border-collapse: collapse; margin: 10px 0 18px; font-size: 14px; }
+  table.review td { border: 1px solid var(--line); padding: 8px 10px; vertical-align: top; }
+  table.review td:first-child { font-weight: bold; width: 38%; background: #f7f7f7; }
+  .done { text-align: center; }
+  .done .ref { font-size: 26px; color: var(--navy); font-weight: bold; margin: 10px 0; }
+  .done a.btn { display: inline-block; background: var(--gold); color: var(--navy); padding: 12px 24px; border-radius: 5px; font-weight: bold; text-decoration: none; margin: 8px; }
+  footer { text-align: center; font-size: 12px; color: #777; padding: 14px; background: #f9f9f9; border-top: 1px solid var(--line); }
+  @media (max-width: 600px) { .wrap { margin: 0; border: 0; } main { padding: 18px 16px 24px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><img src="<?= logo ?>" alt="Development Academy of the Philippines"></header>
+  <main>
+    <h1>New Clearance Request</h1>
+    <div class="sub">CS Form No. 7 &middot; Plantilla Personnel &middot; Signed in as <b><?= user ?></b></div>
+    <? if (testMode) { ?><div class="test"><b>TEST MODE:</b> clearance@dap.edu.ph is not copied on emails.</div><? } ?>
+
+    <!-- Step 1: form -->
+    <form id="f" novalidate>
+      <div id="errors" class="errors hidden"></div>
+
+      <fieldset>
+        <legend>Employee</legend>
+        <div class="row">
+          <div class="f"><label>Name of Employee (HRIS format) <span class="req">*</span></label>
+            <input name="employeeName" class="upper" placeholder="DELA CRUZ, JUAN P." required>
+            <div class="hint">SURNAME, FIRST NAME M.I.</div></div>
+          <div class="f"><label>Personal Email Address <span class="req">*</span></label>
+            <input name="personalEmail" type="email" placeholder="name@gmail.com" required>
+            <div class="hint">Not the DAP email. Status updates and the final clearance go here.</div></div>
+        </div>
+        <div class="row">
+          <div class="f"><label>Office of Assignment <span class="req">*</span></label>
+            <input name="office" required></div>
+        </div>
+        <div class="row">
+          <div class="f"><label>Position <span class="req">*</span></label>
+            <input name="positionTitle" placeholder="Administrative Officer IV" required></div>
+          <div class="f sm"><label>SG <span class="req">*</span></label>
+            <input name="sg" type="number" min="1" max="33" required></div>
+          <div class="f sm"><label>Step <span class="req">*</span></label>
+            <input name="step" type="number" min="1" max="8" required></div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Clearance</legend>
+        <div class="row">
+          <div class="f"><label>Date of Filing <span class="req">*</span></label>
+            <input name="dateOfFiling" type="date" value="<?= today ?>" required></div>
+          <div class="f"><label>Date of Effectivity <span class="req">*</span></label>
+            <input name="effectivity" type="date" required></div>
+        </div>
+        <div class="row">
+          <div class="f"><label>Purpose <span class="req">*</span></label>
+            <select name="purpose" id="purpose" required>
+              <option value="">— Select —</option>
+              <? purposes.forEach(function (p) { ?><option><?= p ?></option><? }); ?>
+            </select></div>
+          <div class="f hidden" id="otherWrap"><label>Please specify <span class="req">*</span></label>
+            <input name="otherPurpose"></div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Part II Signatories</legend>
+        <div class="row">
+          <div class="f"><label>Immediate Supervisor <span class="req">*</span></label>
+            <input name="supervisorName" class="upper" placeholder="Full name" required></div>
+          <div class="f"><label>Supervisor's DAP Email <span class="req">*</span></label>
+            <input name="supervisorEmail" type="email" placeholder="name@dap.edu.ph" required></div>
+        </div>
+        <div class="row">
+          <div class="f"><label>Head of Office <span class="req">*</span></label>
+            <input name="headName" class="upper" placeholder="Full name" required></div>
+          <div class="f"><label>Head of Office's DAP Email <span class="req">*</span></label>
+            <input name="headEmail" type="email" placeholder="name@dap.edu.ph" required></div>
+        </div>
+        <div class="hint">The Supervisor signs first, then the Head of Office. Part III–V officers come from the HRMDD directory.</div>
+      </fieldset>
+
+      <div class="actions"><button type="submit">Review</button></div>
+    </form>
+
+    <!-- Step 2: review -->
+    <div id="review" class="hidden">
+      <p>Please review the details. Submitting creates the live clearance form, shares it with the
+      employee and signatories, and emails the employee.</p>
+      <table class="review" id="reviewTable"></table>
+      <div class="actions">
+        <button class="secondary" id="back" type="button">Back</button>
+        <button id="confirm" type="button">Submit Clearance</button>
+      </div>
+    </div>
+
+    <!-- Step 3: done -->
+    <div id="done" class="hidden done">
+      <p>Clearance filed successfully.</p>
+      <div class="ref" id="doneRef"></div>
+      <div id="doneWarn" class="errors hidden" style="text-align:left"></div>
+      <a class="btn" id="doneLink" target="_blank" href="#">Open Live Clearance Form</a>
+      <a class="btn" href="#" id="again">File Another</a>
+    </div>
+  </main>
+  <footer>DAP E-Clearance System &middot; MC-2026-014, Electronic Clearance Processing</footer>
+</div>
+
+<script>
+  var form = document.getElementById('f');
+  var purpose = document.getElementById('purpose');
+  var labels = {
+    employeeName: 'Name of Employee', personalEmail: 'Personal Email', office: 'Office of Assignment',
+    positionTitle: 'Position', sg: 'SG', step: 'Step', dateOfFiling: 'Date of Filing',
+    effectivity: 'Date of Effectivity', purpose: 'Purpose', otherPurpose: 'Other Mode of Separation',
+    supervisorName: 'Immediate Supervisor', supervisorEmail: 'Supervisor Email',
+    headName: 'Head of Office', headEmail: 'Head of Office Email'
+  };
+
+  purpose.addEventListener('change', function () {
+    document.getElementById('otherWrap').classList.toggle('hidden', purpose.value !== 'Other Mode of Separation');
+  });
+
+  function data() {
+    var o = {};
+    new FormData(form).forEach(function (v, k) { o[k] = String(v).trim(); });
+    ['employeeName', 'supervisorName', 'headName'].forEach(function (k) { o[k] = o[k].toUpperCase(); });
+    return o;
+  }
+
+  function show(id) {
+    ['f', 'review', 'done'].forEach(function (x) { document.getElementById(x).classList.toggle('hidden', x !== id); });
+    window.scrollTo(0, 0);
+  }
+
+  function showErrors(msg) {
+    var el = document.getElementById('errors');
+    el.textContent = msg;
+    el.classList.toggle('hidden', !msg);
+    show('f');
+  }
+
+  // Quick client-side checks; the server re-validates everything.
+  function check(o) {
+    var e = [];
+    Object.keys(labels).forEach(function (k) {
+      if (k !== 'otherPurpose' && !o[k]) e.push(labels[k] + ' is required.');
+    });
+    if (o.purpose === 'Other Mode of Separation' && !o.otherPurpose) e.push('Please specify the Other Mode of Separation.');
+    if (/@dap\.edu\.ph$/i.test(o.personalEmail)) e.push('Use the employee\'s personal email, not the DAP email.');
+    if (o.employeeName && o.employeeName.indexOf(',') < 0) e.push('Name must follow SURNAME, FIRST NAME M.I.');
+    return e;
+  }
+
+  form.addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    var o = data();
+    var e = check(o);
+    if (e.length) return showErrors(e.join('\n'));
+    showErrors('');
+    var rows = Object.keys(labels).filter(function (k) { return o[k]; }).map(function (k) {
+      var v = o[k];
+      return '<tr><td>' + labels[k] + '</td><td>' + v.replace(/[&<>"]/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+      }) + '</td></tr>';
+    });
+    document.getElementById('reviewTable').innerHTML = rows.join('');
+    show('review');
+  });
+
+  document.getElementById('back').onclick = function () { show('f'); };
+
+  document.getElementById('confirm').onclick = function () {
+    var btn = this;
+    btn.disabled = true;
+    btn.textContent = 'Submitting…';
+    google.script.run
+      .withSuccessHandler(function (r) {
+        btn.disabled = false;
+        btn.textContent = 'Submit Clearance';
+        document.getElementById('doneRef').textContent = r.ref + ' — ' + r.employeeName;
+        document.getElementById('doneLink').href = r.url;
+        var w = document.getElementById('doneWarn');
+        w.textContent = (r.warnings || []).join('\n');
+        w.classList.toggle('hidden', !(r.warnings || []).length);
+        show('done');
+      })
+      .withFailureHandler(function (err) {
+        btn.disabled = false;
+        btn.textContent = 'Submit Clearance';
+        showErrors(err.message || String(err));
+      })
+      .submitIntake(data());
+  };
+
+  document.getElementById('again').onclick = function (ev) {
+    ev.preventDefault();
+    form.reset();
+    purpose.dispatchEvent(new Event('change'));
+    show('f');
+  };
+</script>
+</body>
+</html>

@@ -57,10 +57,7 @@ ${detailsTable_([
   ['Reference No.', SPIKE.REF], ['Employee', E.hrisName], ['Position/SG/Step', E.position],
   ['Office of Assignment', E.office], ['Purpose', E.purpose], ['Date of Effectivity', E.effectivity],
 ])}
-<p style="background:#fff8e1; border:1px solid ${ECL.BRAND.GOLD}; padding:12px; border-radius:4px; font-size:14px;">
-<b>How to respond:</b> click a button below. Gmail opens a pre-filled email &mdash; just press <b>Send</b>.
-For <b>Not Cleared</b>, <b>Hold</b> or a pending case, type the details at the top of that email first.
-Please do not edit the code block at the bottom.</p>
+${officerInstructionsHtml_()}
 ${rows.map((r) => rowCard_(SPIKE.REF, r, officer)).join('')}
 <p style="font-size: 13px; color: #555;">You will receive a confirmation reply for every action recorded.</p>`;
 
@@ -144,7 +141,7 @@ function handleCommandMessage_(msg, sender) {
   const def = ACTIONS[cmd.action];
   if (!def || BUTTON_SETS[row.part].indexOf(cmd.action) < 0) return reject(`Action ${cmd.action} is not allowed for Part ${row.part}.`);
   if (def.needsDetails && cmd.details.length < ECL.MIN_DETAILS_LENGTH) {
-    return reject('Details are required for this action. Please click the button again and type the details at the top of the email before sending.');
+    return reject(`Specific details are required for this action (at least ${ECL.MIN_DETAILS_LENGTH} characters). Please click the button again and state the item and the action the employee must take, at the top of the email, before sending.`);
   }
 
   const state = getSpikeState_();

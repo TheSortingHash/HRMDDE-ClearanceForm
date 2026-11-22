@@ -21,7 +21,7 @@ const ECL = {
   LABEL_REJECTED: 'E-Clearance/Rejected',
 
   // Minimum characters required when an action needs a written explanation.
-  MIN_DETAILS_LENGTH: 10,
+  MIN_DETAILS_LENGTH: 25,
 };
 
 /**
@@ -66,3 +66,46 @@ const BUTTON_SETS = {
   IV: ['NO_PENDING_CASE', 'PENDING_ADMIN_CASE', 'ONGOING_INVESTIGATION'],
   V: ['CERTIFY', 'HOLD'],
 };
+
+/* ======================================================================== Phase 1 */
+
+/** Original CS Form No. 7 Google Sheet. Copied once by setupSystem() into the template. */
+const TEMPLATE_SOURCE_ID = '18c6WDzKDde3Ja8WZ0KfpvgcF1skEQ_eaEcWg1dc6SBs';
+const FORM_SHEET = 'Clearance Form';
+
+const FOLDERS = {
+  ROOT: 'DAP E-Clearance System',
+  TEMPLATE: 'Template',
+  LIVE: 'Live Clearance Forms',
+  COMPLETED: 'Completed Clearances',
+};
+
+const PURPOSES = ['Transfer', 'Retirement', 'Resignation', 'Leave', 'Other Mode of Separation'];
+
+/** Parts in processing order (Guide: "Processing … shall follow the order of number indicated"). */
+const PART_ORDER = ['II', 'III', 'IV', 'V'];
+
+/**
+ * Every signatory row on CS Form No. 7.
+ *  step  = routing sequence (same step = parallel). Part II is sequential: Supervisor, then Head.
+ *  cells = where the name, check marks and signature notation go on the 'Clearance Form' sheet.
+ *  source 'request' = name/email typed by RSP at intake; 'directory' = Officers sheet.
+ */
+const SIGNATORY_ROWS = [
+  { rowId: 'II-SUP', part: 'II', step: 1, source: 'request', office: 'Immediate Supervisor', cells: { name: 'D22' } },
+  { rowId: 'II-HEAD', part: 'II', step: 2, source: 'request', office: 'Head of Office', cells: { name: 'J22' } },
+  { rowId: 'III-1a', part: 'III', step: 3, source: 'directory', sheetRow: 27 },
+  { rowId: 'III-1b', part: 'III', step: 3, source: 'directory', sheetRow: 28 },
+  { rowId: 'III-1c', part: 'III', step: 3, source: 'directory', sheetRow: 29 },
+  { rowId: 'III-2a', part: 'III', step: 3, source: 'directory', sheetRow: 31 },
+  { rowId: 'III-2b', part: 'III', step: 3, source: 'directory', sheetRow: 32 },
+  { rowId: 'III-3a', part: 'III', step: 3, source: 'directory', sheetRow: 34 },
+  { rowId: 'III-3b', part: 'III', step: 3, source: 'directory', sheetRow: 35 },
+  { rowId: 'III-3c', part: 'III', step: 3, source: 'directory', sheetRow: 36 },
+  { rowId: 'III-4a', part: 'III', step: 3, source: 'directory', sheetRow: 38 },
+  { rowId: 'IV-a', part: 'IV', step: 4, source: 'directory', sheetRow: 40 },
+  { rowId: 'V-EVP', part: 'V', step: 5, source: 'directory', cells: { name: 'A50', sign: 'A49' } },
+];
+
+/** Stage highlight colours on the live form. */
+const STAGE_COLORS = { DONE: '#E6F4EA', CURRENT: '#FFE699' };

@@ -59,3 +59,26 @@ function escapeHtml_(s) {
   return String(s == null ? '' : s)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
+
+/**
+ * "How to respond" box for officer request emails, including the MC-2026-014 §III.B.4
+ * reminder that a notice of accountability must be specific.
+ */
+function officerInstructionsHtml_() {
+  return `
+<p style="background:#fff8e1; border:1px solid ${ECL.BRAND.GOLD}; padding:12px; border-radius:4px; font-size:14px;">
+<b>How to respond:</b> click a button below. Gmail opens a pre-filled email &mdash; just press <b>Send</b>.<br><br>
+For <b>Not Cleared</b>, <b>Hold</b> or a pending case, type the details at the top of that email first.
+Please be specific: name the <b>item or accountability</b> (e.g., property number, amount, document)
+and the <b>action the employee must take</b> to be cleared (MC-2026-014 &sect;III.B.4).<br><br>
+Please do not edit the code block at the bottom of the email.</p>`;
+}
+
+/** Table-based button for ordinary web links. */
+function linkButton_(href, text) {
+  return `
+<p style="text-align: center; margin: 25px 0;">
+  <a href="${href}" target="_blank"
+     style="background-color: ${ECL.BRAND.GOLD}; color: ${ECL.BRAND.NAVY}; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">${text}</a>
+</p>`;
+}

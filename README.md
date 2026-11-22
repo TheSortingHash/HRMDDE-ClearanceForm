@@ -4,24 +4,20 @@ Electronic processing of CS Form No. 7 (Clearance Form) for plantilla personnel 
 **MC-2026-014, Electronic Clearance Processing**. Built entirely on Google Workspace and
 Google Apps Script, running under the host account **comben@dap.edu.ph** for the prototype.
 
-## How officers act: email buttons that send a pre-filled email
+## How officers act: the Officer Portal
 
-Clearing officers act directly from Gmail. Each request email has, per assigned row,
-buttons such as **CLEARED / NOT CLEARED / ON OB-LEAVE**. A button opens a pre-filled Gmail
-compose to `comben+eclearance@dap.edu.ph` and the officer presses **Send**. Every minute, a
-time trigger on the host account:
+Signatories get a branded email with the employee's details (name, position, office, purpose,
+effectivity, due date) and an **Open in E-Clearance Portal** link. The portal is a page of the same
+Apps Script web app, deployed as *Execute as: Me (comben@dap.edu.ph)* and *Who has access: Anyone
+within DAP*:
 
-1. reads new emails sent to the `+eclearance` address,
-2. checks that the sender is the assigned officer, that the email passes DAP sender
-   authentication, that the HMAC code matches the reference, row and officer, that the action
-   is allowed for that Part, and that details are present when required,
-3. records the action (later phases: writes the "Electronically signed by …" notation on the
-   form),
-4. replies in the same thread with a receipt, and for Not Cleared, Hold or a pending case,
-   opens a direct thread between the employee and the officer (Reply-To = officer, cc supervisor and
-   clearance@dap.edu.ph).
+- Google identifies the signed-in DAP account (`Session.getActiveUser()`), so no separate login is needed.
+- Officers get **no** edit access to the database or the forms. Only the host account writes.
+- An officer sees and acts only on rows assigned to their email or their designated alternate.
 
-The officer's own Sent folder keeps a copy of every action (MC-2026-014 §III.D.6, §III.F.1).
+> Phase 0 (email buttons that send a pre-filled email) proved that email delivery, codes and DAP
+> sender authentication work. Its button flow has been replaced by the portal. `Phase0_Spike.gs` and
+> `Codes.gs` remain only until Phase 2 removes them.
 
 ## Agreed workflow
 
@@ -48,39 +44,42 @@ The officer's own Sent folder keeps a copy of every action (MC-2026-014 §III.D.
 
 | Phase | Scope | Status |
 |---|---|---|
-| 0 | Gmail button spike (`src/Phase0_Spike.gs`) | **Ready to test** |
-| 1 | Master DB sheets, template cleanup, intake web app, live form copy and sharing | — |
-| 2 | Routing II → III → IV → V, notations on the form, employee updates, accountability threads | — |
+| 0 | Gmail button spike | Done (superseded by the Officer Portal) |
+| 1 | Master DB, template cleanup, branded intake web app, live form copy and sharing | **Ready to test** |
+| 2 | Officer Portal, routing II → III → IV → V, notations on the form, employee updates, accountability threads | — |
 | 3 | Working-day calculator, reminders, OB extension, deemed clearance, 30-day reminder | — |
 | 4 | PDF export, QR code, verification page | — |
 
-## Setup (Phase 0)
+## Setup (Phase 1)
 
-Signed in as **comben@dap.edu.ph**:
+Signed in as **comben@dap.edu.ph**, in the Apps Script project:
 
-1. Create a new Apps Script project at <https://script.google.com>.
-2. Copy in every file from `src/`. Turn on *Show "appsscript.json"* in Project Settings and
-   replace its contents with `src/appsscript.json`. Or, with clasp, copy
-   `.clasp.json.example` to `.clasp.json`, set the script ID, and run `clasp push`.
-3. Run `spikeSendTestEmails` and approve the permissions. The execution log prints the URL of the
-   **E-Clearance Phase 0 Log** sheet.
-4. Run `spikeInstallTrigger`.
+1. Copy in every file from `src/`, including `Intake.html` and the updated `appsscript.json`.
+   This turns on the **Drive API** advanced service and the web app settings.
+2. comben@ must be able to open the original CS Form No. 7 sheet
+   (`18c6WDzKDde3Ja8WZ0KfpvgcF1skEQ_eaEcWg1dc6SBs`), because setup copies it.
+3. Run **`setupSystem`** and approve the permissions. The log prints three links:
+   - the folder **DAP E-Clearance System**, with subfolders Template, Live Clearance Forms and Completed Clearances,
+   - the **DAP E-Clearance DB** spreadsheet, with the sheets Settings, Requests, Signatories,
+     Officers (pre-filled with the test addresses), Holidays and AuditLog,
+   - the cleaned-up **template** (CS Form No. 7 with ☐ boxes, named ranges and a Ref. No. slot).
+4. **Deploy → New deployment → Web app**: Execute as *Me*, Who has access *Anyone within
+   Development Academy of the Philippines*. Open the `/exec` URL.
+5. RSP users are listed in **Settings → RSP_USERS**. Anyone else who opens the URL lands on the
+   Officer Portal placeholder.
 
-### Test checklist
+Template changes: if you change the cleanup code, run `rebuildTemplate`. Layout tweaks made by hand
+in the template are kept by later copies. Just don't delete its named ranges (Data → Named ranges).
 
-Test addresses: anchetad@ (3 Part III rows, which is the multi-row case), anchetam@ (Part II
-Supervisor and Part V EVP), fd-omd-gse@ (Part III Financial Services and Part IV Legal).
-The test "employee" receiving accountability threads is anchetad@.
+### Phase 1 test checklist
 
-- [ ] Gmail **web**: a button opens a compose window inside Gmail with the To, Subject and Body filled in.
-- [ ] Gmail **mobile app** (Android/iOS): same.
-- [ ] The `+eclearance` address is kept and not altered in the To field.
-- [ ] Cleared: a receipt arrives in the same thread within about 1–2 minutes, and a log row shows `RECORDED`.
-- [ ] Not Cleared sent **without** details: rejected with a request for details.
-- [ ] Not Cleared **with** details: the employee thread arrives, and replying goes to the officer.
-- [ ] Clicking Cleared twice on the same row: the second attempt is rejected as already recorded.
-- [ ] Forward a request email to someone else who clicks a button: rejected because the sender isn't the assigned officer.
-- [ ] Part IV and Part V buttons behave the same way.
-- [ ] Note the **Auth-Results** column for internal mail, and whether fd-omd-gse@ is a mailbox or a group.
-
-Afterwards, run `spikeRemoveTriggers`. Run `spikeReset` to clear recorded states before another round.
+- [ ] The template looks right: ☐ boxes instead of £, signature lines intact, nothing overflowing.
+- [ ] Intake: submit with mistakes (DAP email as the personal email, name without a comma, Other purpose with no text). Each is caught.
+- [ ] Submit a valid request. The live form appears in *Live Clearance Forms* named `ECL-2026-0001 — NAME — CS Form No. 7`:
+  - fields filled (values bold and underlined), purpose box ticked, all 13 signatory names filled,
+  - **Part II header highlighted gold**, Ref. No. at the top right.
+- [ ] The file is shared **view-only** with the personal email and all signatories, and **no** Drive "shared with you" email is sent.
+- [ ] The employee gets the branded "Clearance Filed" email (cc supervisor) with a link that opens the live form.
+- [ ] DB: one Requests row, 13 Signatories rows (II-SUP `QUEUED`, others `WAITING`), and an AuditLog `FILED` entry.
+- [ ] Submitting again for the same personal email is blocked while the first clearance is open.
+- [ ] Opening the web app URL from an account not in RSP_USERS shows the Officer Portal placeholder with that account's email.
