@@ -125,7 +125,11 @@ function handleCommandMessage_(msg, sender) {
   };
 
   if (!cmd) return reject('The clearance code could not be read. Please use the buttons in the original request email without editing the code block.');
-  if (/(dkim|spf|dmarc)=fail/i.test(res.auth)) return reject('The email failed DAP sender authentication.');
+  // DAP mail is DKIM-signed by gappssmtp.com (Google default), so rely on SPF/DMARC for
+  // dap.edu.ph. DAP's DMARC policy is p=NONE, so require a positive pass, not just "no fail".
+  const authOk = /dmarc=pass/i.test(res.auth) ||
+    /spf=pass[^;]*smtp\.mailfrom=[^;\s]*@dap\.edu\.ph/i.test(res.auth);
+  if (!authOk || /(spf|dmarc)=fail/i.test(res.auth)) return reject('The email failed DAP sender authentication.');
   if (cmd.ref !== SPIKE.REF) return reject(`Unknown reference number ${cmd.ref}.`);
 
   const row = SPIKE.ROWS.find((r) => r.rowId === cmd.rowId);

@@ -90,8 +90,13 @@ function parseCommand_(subject, plainBody) {
   if (!cmd) return null;
 
   // Free-text details = everything typed above the code block, minus the prompt line.
+  // If the client dropped the pre-filled body (code block missing), keep what the officer
+  // typed, minus quoted lines and the "On ... wrote:" header.
   const cut = body.indexOf('----- E-CLEARANCE CODE');
-  let details = (cut >= 0 ? body.slice(0, cut) : '').trim();
+  let details = cut >= 0 ? body.slice(0, cut) : body
+    .split('\n').filter((l) => !/^\s*>/.test(l)).join('\n')
+    .replace(/\nOn .+wrote:\s*$/s, '');
+  details = details.trim();
   const def = ACTIONS[cmd.action];
   if (def && def.prompt) details = details.replace(def.prompt, '').trim();
   details = details.replace(/^Please send this email as is to record:.*$/m, '').trim();
