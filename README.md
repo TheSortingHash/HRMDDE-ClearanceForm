@@ -91,22 +91,41 @@ in this repository.
 | 3 | Reminders, deemed clearance (Parts II–III), 30-day reminder (the working-day calculator and OB extension are already in Phase 2) | — |
 | 4 | PDF export, QR code, verification page | — |
 
-## Setup
+## Setup (fresh Apps Script project)
 
-Signed in as **comben@dap.edu.ph**, in the Apps Script project:
+All code files sit at the repository root, so each becomes one Apps Script file with the same name.
+**Apps Script does not allow two files with the same name** (e.g. `Portal.gs` and `Portal.html`). If it
+happens, the GitHub Assistant pull fails with `[github assistant] undefined`. That is why the portal's server
+code is `PortalApi.gs`.
 
-1. Copy in every file from `src/` (`.gs`, `.html`, and `appsscript.json`, which turns on the **Drive API**
-   and **Gmail API** advanced services). **Delete `Phase0_Spike.gs` and `Codes.gs`** from the project if they're still there.
-2. comben@ must be able to open the original CS Form No. 7 sheet (`18c6WDzKDde3Ja8WZ0KfpvgcF1skEQ_eaEcWg1dc6SBs`).
-3. Run **`setupSystem`** and approve the new Gmail permission. It is safe to re-run: on an existing DB it adds
-   the **Employees** sheet, the new columns (Requests: HRIS Number, Update Thread ID, Update Message ID;
-   Signatories: Alternate Name, Acted By) and the new setting `WEBAPP_URL`.
-4. **Deploy → Manage deployments → Edit → New version** (or a new Web app deployment): Execute as *Me*,
-   Who has access *Anyone within Development Academy of the Philippines*.
-5. Optional: paste the `/exec` URL into **Settings → WEBAPP_URL** so email links always use it.
-6. Fill in **Holidays** (dates of regular and special non-working holidays and work suspensions) for correct due dates.
+Signed in as **comben@dap.edu.ph**:
+
+1. Turn on the **Google Apps Script API** at <https://script.google.com/home/usersettings> (the GitHub Assistant needs it).
+2. Create a new project at <https://script.google.com> → New project, and name it e.g. *DAP E-Clearance System*.
+3. In the GitHub Assistant bar, pick repository **TheSortingHash/HRMDDE-ClearanceForm**, branch
+   **claude/bold-knuth-hixrv8**, then **Pull**. You should get 14 script/HTML files plus `appsscript.json`:
+   `Clearance, Config, Db, Directory, EmailTemplate, Notify, PortalApi, Setup, Template, WebApp, Workflow,
+   WorkingDays` (.gs) and `Intake, Portal` (.html). If the editor still shows the default `Code.gs`, delete it.
+4. Project Settings: tick **Show "appsscript.json"**, and check the time zone is *(GMT+08:00) Manila*.
+   Under **Services** you should see **Drive API** and **Gmail API**, which are turned on by `appsscript.json`.
+5. comben@ must be able to open the original CS Form No. 7 sheet (`18c6WDzKDde3Ja8WZ0KfpvgcF1skEQ_eaEcWg1dc6SBs`).
+6. Open `Setup.gs`, select **`setupSystem`**, click Run, and approve the permissions. The log prints the folder, DB and template links.
+   - A new project has no saved settings (Script Properties), so this creates a **new DB and template**, starting
+     reference numbers at ECL-YYYY-0001. It reuses the existing *DAP E-Clearance System* folder.
+     Move any old *DAP E-Clearance DB* and old template copies to the trash to avoid confusion.
+   - To keep an old DB instead: before running setup, add Script Properties `DB_ID` (old DB ID),
+     `TEMPLATE_ID` (old template ID) and `SEQ_2026` (last reference number used, e.g. `3`).
+7. Load the employee directory: either fill **Settings → EMPLOYEE_SOURCE_ID** and run `importEmployees`,
+   or import `Employees_import.csv` into the **Employees** sheet (File → Import → Upload → *Replace current sheet*).
+8. **Deploy → New deployment → Web app**: Execute as *Me*, Who has access *Anyone within Development Academy
+   of the Philippines*. Paste the `/exec` URL into **Settings → WEBAPP_URL**.
+9. Fill in **Holidays** for correct due dates.
 
 Pages: `/exec` (intake for RSP users, portal for everyone else), `/exec?page=officer`, `/exec?page=admin`.
+
+If a pull ever fails again, the quickest check is for duplicate names: no two files may share a name
+regardless of extension. Manual fallback: create each file in the editor with the name above and paste its
+contents, then `appsscript.json` last.
 
 ### Phase 2 test checklist
 

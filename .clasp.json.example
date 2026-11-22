@@ -1,4 +1,4 @@
 {
   "scriptId": "PASTE_SCRIPT_ID_OF_THE_PROJECT_OWNED_BY_comben@dap.edu.ph",
-  "rootDir": "src"
+  "rootDir": "."
 }
