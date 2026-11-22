@@ -6,8 +6,19 @@
  *  - Officer "Action needed" emails cc alternates (+ clearance@ outside TEST_MODE).
  */
 
+/**
+ * The deployed web app URL (…/exec) used in every email link. Always set Settings → WEBAPP_URL:
+ * when code runs from the editor (tests, setup), Google returns the /dev test URL, which only the
+ * project's editors can open ("You need access").
+ */
 function webAppUrl_() {
-  return setting_('WEBAPP_URL') || ScriptApp.getService().getUrl();
+  const set = String(setting_('WEBAPP_URL') || '').trim();
+  if (set) return set;
+  const auto = ScriptApp.getService().getUrl() || '';
+  if (/\/dev$/.test(auto)) {
+    console.warn('Settings → WEBAPP_URL is blank; email links fall back to the /dev test URL, which signatories cannot open.');
+  }
+  return auto;
 }
 
 function portalUrl_(ref) {

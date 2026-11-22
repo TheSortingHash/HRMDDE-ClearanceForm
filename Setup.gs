@@ -17,6 +17,39 @@ function setupSystem() {
   console.log('Root folder:  ' + root.getUrl());
   console.log('Database:     ' + db_().getUrl());
   console.log('Template:     ' + SpreadsheetApp.openById(prop_('TEMPLATE_ID')).getUrl());
+  checkConfig();
+}
+
+/** Prints configuration problems that break links for signatories. Safe to run any time. */
+function checkConfig() {
+  const problems = [];
+  const app = String(setting_('WEBAPP_URL') || '').trim();
+  if (!app) problems.push('Settings → WEBAPP_URL is blank. Paste the web app URL ending in /exec (Deploy → Manage deployments).');
+  else if (/\/dev$/.test(app)) problems.push('Settings → WEBAPP_URL is the /dev test URL; only project editors can open it. Use the /exec URL.');
+  else if (!/^https:\/\/script\.google\.com\/.+\/exec$/.test(app)) problems.push(`Settings → WEBAPP_URL should end in /exec (now: ${app}).`);
+  const ver = String(setting_('VERIFY_URL') || '').trim();
+  if (ver && !/\/exec$/.test(ver)) problems.push(`Settings → VERIFY_URL should end in /exec (now: ${ver}).`);
+  if (ver && ver === app) problems.push('VERIFY_URL is the same as WEBAPP_URL. Use the separate "Anyone" deployment for verification.');
+  console.log(problems.length ? 'CONFIG PROBLEMS:\n- ' + problems.join('\n- ') : 'Configuration OK.');
+  return problems;
+}
+
+/**
+ * Re-sends the "Action needed" email (with the current WEBAPP_URL link) to every signatory whose
+ * row is awaiting action, without changing any due dates. Use after fixing WEBAPP_URL.
+ */
+function resendActionEmails() {
+  if (checkConfig().some((p) => /WEBAPP_URL/.test(p))) throw new Error('Fix WEBAPP_URL first (see the log).');
+  let n = 0;
+  readObjects_('Requests').filter((r) => r.Status === 'IN_PROGRESS').forEach((req) => {
+    const sigs = getSignatories_(req['Ref No']);
+    const due = sigs.filter((s) => s.Status === SIG_STATUS.SENT && isCurrentStep_(s, sigs));
+    if (!due.length) return;
+    notifyOfficers_(req, due, null, { kind: 'REQUEST' });
+    audit_(req['Ref No'], currentUser_() || ECL.HOST_EMAIL, 'RESENT', due.map((s) => s['Row ID']).join(', '));
+    n += due.length;
+  });
+  console.log(`Re-sent action emails for ${n} row(s).`);
 }
 
 /** Rebuilds the cleaned-up template from the original CS Form No. 7 (old template is trashed). */

@@ -176,6 +176,17 @@ Signed in as **comben@dap.edu.ph**:
 Updating an existing project: pull the new release branch, then run `setupSystem` once. It adds any new
 DB columns and settings and re-installs the trigger, without touching your data.
 
+### Troubleshooting: signatories see "You need access" (Request access: Viewer / Editor)
+
+Signatories never need access to the script, the DB or the folders. The web app runs as comben@. That page
+means the link points to the **/dev test URL**, which only project editors can open, or to a deployment whose access
+isn't *Anyone within DAP*.
+1. Deploy → Manage deployments → the web app → copy the **Web app URL ending in `/exec`**. Check that *Execute as* is
+   **Me** and *Who has access* is **Anyone within Development Academy of the Philippines**.
+2. Paste it into **Settings → WEBAPP_URL** (never the `/dev` URL from *Test deployments*).
+3. Run **`checkConfig`** (it should print *Configuration OK*), then **`resendActionEmails`** to re-send the
+   "Action needed" emails with the corrected link. Due dates are not changed.
+
 Pages: `/exec` (intake for RSP users, portal for everyone else), `/exec?page=officer`, `/exec?page=admin`.
 
 If a pull ever fails again, the quickest check is for duplicate names: no two files may share a name
