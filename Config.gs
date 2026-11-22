@@ -108,5 +108,15 @@ const DEADLINE = { NORMAL: 3, EXTENDED: 7 };
 /** Parts where a lapsed deadline results in deemed clearance (§III.E). Applied in Phase 3. */
 const DEEMED_PARTS = ['II', 'III'];
 
+/**
+ * The template is enlarged by this factor (column widths, row heights, fonts, header image) because
+ * Google's PDF export only shrinks content to fit, never enlarges it. 1.7 fills an oficio page width.
+ */
+const FORM_SCALE = 1.7;
+/** Pixel/point size on the scaled form. */
+function fs_(n) {
+  return Math.round(n * FORM_SCALE);
+}
+
 /** Stage highlight colours on the live form. */
 const STAGE_COLORS = { DONE: '#E6F4EA', CURRENT: '#FFE699' };

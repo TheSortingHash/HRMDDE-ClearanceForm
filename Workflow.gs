@@ -219,7 +219,7 @@ function renderSignatory_(ss, sig, allSigs) {
   if (sig.Part === 'II') {
     const cell = named_(ss, `ECL_SIG_${key}_NAME`);
     setNameWithNotation_(cell, sig['Officer Name'], sig.Notation);
-    cell.getSheet().setRowHeight(cell.getRow(), sig.Notation ? 34 : 18);
+    cell.getSheet().setRowHeight(cell.getRow(), fs_(sig.Notation ? 34 : 18));
     const part2 = allSigs.filter((s) => s.Part === 'II');
     setPartIIStatement_(ss, part2.every(isDone_), part2.some((s) => s.Status === SIG_STATUS.NOT_CLEARED));
     return;
@@ -227,11 +227,11 @@ function renderSignatory_(ss, sig, allSigs) {
 
   if (sig.Part === 'V') {
     const cell = named_(ss, `ECL_SIG_${key}_SIGN`);
-    cell.setValue(sig.Notation || '').setFontFamily('Arial').setFontSize(8).setFontStyle('italic')
+    cell.setValue(sig.Notation || '').setFontFamily('Arial').setFontSize(fs_(8)).setFontStyle('italic')
       .setFontColor(ECL.BRAND.NAVY).setHorizontalAlignment('center').setVerticalAlignment('bottom');
     const sheet = cell.getSheet();
     sheet.showRows(cell.getRow());
-    sheet.setRowHeight(cell.getRow(), 20);
+    sheet.setRowHeight(cell.getRow(), fs_(20));
     return;
   }
 
@@ -245,9 +245,9 @@ function renderSignatory_(ss, sig, allSigs) {
     setBox_(named_(ss, 'ECL_IV_INVESTIGATION'), notCleared && sig.Action === 'ONGOING_INVESTIGATION');
   }
   const sign = named_(ss, `ECL_SIG_${key}_SIGN`);
-  sign.setValue(sig.Notation || '').setFontFamily('Arial').setFontSize(7).setFontStyle('italic')
+  sign.setValue(sig.Notation || '').setFontFamily('Arial').setFontSize(fs_(7)).setFontStyle('italic')
     .setFontColor(ECL.BRAND.NAVY).setWrap(true).setVerticalAlignment('middle');
-  if (sig.Notation) sign.getSheet().setRowHeight(sign.getRow(), 40);
+  if (sig.Notation) sign.getSheet().setRowHeight(sign.getRow(), fs_(40));
 }
 
 /** Part II name cell: bold name, plus a small italic notation line once signed. */
@@ -257,7 +257,7 @@ function setNameWithNotation_(cell, name, notation) {
     .setTextStyle(0, String(name).length, SpreadsheetApp.newTextStyle().setBold(true).build());
   if (notation) {
     b.setTextStyle(String(name).length + 1, text.length, SpreadsheetApp.newTextStyle()
-      .setBold(false).setItalic(true).setFontSize(7).setForegroundColor(ECL.BRAND.NAVY).build());
+      .setBold(false).setItalic(true).setFontSize(fs_(7)).setForegroundColor(ECL.BRAND.NAVY).build());
   }
   cell.setRichTextValue(b.build()).setWrap(true);
 }

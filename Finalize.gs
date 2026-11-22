@@ -12,7 +12,7 @@
  *    is known, then its content is replaced with the exported PDF).
  */
 
-const QR_SIZE_PX = 120; // on-sheet size: fits rows 1–5 of the reworked template, inside the right border
+const QR_SIZE_PX = fs_(120); // on-sheet size: fits rows 1–5 of the scaled template, inside the right border
 
 function finalizeClearance_(ref, actor) {
   const req = getRequest_(ref);
@@ -40,7 +40,8 @@ function finalizeClearance_(ref, actor) {
     // 2. QR code at the top right (replaces any earlier one).
     sheet.getImages().forEach((img) => { if (img.getAltTextTitle() === 'ECL_QR') img.remove(); });
     // Anchored in column M, offset so the QR's right edge sits just inside column O (M+N+O = 273 px).
-    const qr = sheet.insertImage(qrPngBlob_(qrTarget), 13, 1, 273 - QR_SIZE_PX - 4, 2); // QrCode.gs
+    const mno = sheet.getColumnWidth(13) + sheet.getColumnWidth(14) + sheet.getColumnWidth(15);
+    const qr = sheet.insertImage(qrPngBlob_(qrTarget), 13, 1, Math.max(0, mno - QR_SIZE_PX - fs_(4)), fs_(2));
     qr.setWidth(QR_SIZE_PX).setHeight(QR_SIZE_PX).setAltTextTitle('ECL_QR')
       .setAltTextDescription(`Scan to verify ${ref}`);
     highlightStage_(ss, 'COMPLETED');
@@ -78,12 +79,14 @@ function finalizeClearance_(ref, actor) {
  */
 const PAPER_SIZES = { oficio: 5, folio: 5, long: 5, legal: 2, a4: 7, letter: 0 };
 
-/** Exports both sheets (form + instructions) as one PDF. Paper size from Settings → PDF_PAPER_SIZE. */
+/** Exports the Clearance Form sheet (page 1 only) as a PDF. Paper size from Settings → PDF_PAPER_SIZE. */
 function exportPdf_(spreadsheetId, name) {
   const key = String(setting_('PDF_PAPER_SIZE') || 'oficio').trim().toLowerCase();
   if (!(key in PAPER_SIZES)) throw new Error(`Unknown PDF_PAPER_SIZE "${key}". Use oficio, legal or A4.`);
   const params = {
-    format: 'pdf', size: PAPER_SIZES[key], portrait: 'true', fitw: 'true', gridlines: 'false', printtitle: 'false',
+    // gid = the Clearance Form sheet only (one page); scale 4 = fit to page (shrinks only if needed).
+    gid: SpreadsheetApp.openById(spreadsheetId).getSheetByName(FORM_SHEET).getSheetId(),
+    format: 'pdf', size: PAPER_SIZES[key], portrait: 'true', scale: '4', gridlines: 'false', printtitle: 'false',
     sheetnames: 'false', pagenum: 'UNDEFINED', fzr: 'false', horizontal_alignment: 'CENTER',
     top_margin: '0.4', bottom_margin: '0.4', left_margin: '0.4', right_margin: '0.4',
   };

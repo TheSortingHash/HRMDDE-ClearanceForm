@@ -159,7 +159,14 @@ The cleanup also:
 - removes the original drawn check boxes in Parts II and IV, which overlapped the ☐/☑ marks;
 - puts Ref. No. left of the QR code, and keeps the QR inside the form border.
 
-After pulling these changes, run **`rebuildTemplate`**. Clearances filed earlier keep the old layout.
+- enlarges the whole form ×1.7 (`FORM_SCALE` in Config.gs: column widths, row heights, fonts, header image),
+  because Google's PDF export only shrinks content to fit and never enlarges it;
+- the PDF contains **page 1 only** (the Clearance Form sheet, *fit to page*). The Instructions sheet stays in the
+  live form for reference.
+
+After pulling these changes, run **`rebuildTemplate`**, and **deploy a new version of the web app**. Intake runs
+inside the web app deployment, so an old deployment fills new clearances with old code. Clearances filed earlier
+keep the old layout.
 
 ## Demo mode (presentations)
 

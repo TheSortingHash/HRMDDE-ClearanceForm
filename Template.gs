@@ -130,6 +130,12 @@ function cleanupTemplate_(ss) {
   // Part V notation line above the EVP name.
   sh.getRange('A49:O49').merge().setHorizontalAlignment('center').setVerticalAlignment('bottom').setFontSize(8);
 
+  // Single-page output: the Instructions sheet is no longer exported.
+  sh.getRange('N52').setValue('');
+
+  // Enlarge everything so the exported PDF fills the page (export never scales up).
+  scaleForm_(sh, FORM_SCALE);
+
   // Named ranges.
   Object.keys(FIELD_RANGES).forEach((name) => ss.setNamedRange(name, sh.getRange(FIELD_RANGES[name])));
   SIGNATORY_ROWS.forEach((row) => {
@@ -139,6 +145,23 @@ function cleanupTemplate_(ss) {
     });
   });
   SpreadsheetApp.flush();
+}
+
+/** Scales column widths, row heights, font sizes and over-grid images of the form by `k`. */
+function scaleForm_(sh, k) {
+  const cols = sh.getMaxColumns();
+  const rows = sh.getMaxRows();
+  for (let c = 1; c <= cols; c++) sh.setColumnWidth(c, Math.round(sh.getColumnWidth(c) * k));
+  for (let r = 1; r <= rows; r++) {
+    if (!sh.isRowHiddenByUser(r)) sh.setRowHeight(r, Math.round(sh.getRowHeight(r) * k));
+  }
+  const range = sh.getRange(1, 1, rows, cols);
+  range.setFontSizes(range.getFontSizes().map((row) => row.map((v) => Math.round((Number(v) || 10) * k))));
+  sh.getImages().forEach((img) => {
+    img.setWidth(Math.round(img.getWidth() * k)).setHeight(Math.round(img.getHeight() * k))
+      .setAnchorCellXOffset(Math.round(img.getAnchorCellXOffset() * k))
+      .setAnchorCellYOffset(Math.round(img.getAnchorCellYOffset() * k));
+  });
 }
 
 /** Deletes columns after `cols` and rows after `rows`. */
@@ -183,8 +206,11 @@ function fillLiveForm_(ss, req, signatories) {
   named_(ss, 'ECL_DATE_FILING').setValue(formatLongDate_(req.dateOfFiling))
     .setHorizontalAlignment('center').setFontWeight('bold');
   // The employee's signature: the clearance can only be filed with their approved Notice of Separation.
-  setNameWithNotation_(named_(ss, 'ECL_EMPLOYEE_NAME'), req.employeeName,
+  const nameCell = named_(ss, 'ECL_EMPLOYEE_NAME');
+  setNameWithNotation_(nameCell, req.employeeName,
     `Initiated through approved Notice of Separation (on file) · ${formatLongDate_(req.dateOfFiling)}`);
+  nameCell.setVerticalAlignment('bottom');
+  nameCell.getSheet().setRowHeight(nameCell.getRow(), fs_(34));
   setLabeled_(named_(ss, 'ECL_EFFECTIVITY'), FIELD_LABELS.ECL_EFFECTIVITY, formatLongDate_(req.effectivity));
   setLabeled_(named_(ss, 'ECL_OFFICE'), FIELD_LABELS.ECL_OFFICE, req.office);
   setLabeled_(named_(ss, 'ECL_POSITION'), FIELD_LABELS.ECL_POSITION, req.position);
