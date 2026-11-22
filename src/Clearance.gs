@@ -62,6 +62,7 @@ function createClearance_(data, filedBy) {
     const now = new Date();
     appendObjects_('Requests', [{
       'Ref No': ref, Status: 'IN_PROGRESS', Stage: 'II', 'Filed At': now, 'Filed By': filedBy,
+      'HRIS Number': data.hrisNumber,
       'Employee Name (HRIS)': data.employeeName, 'Personal Email': data.personalEmail,
       'Position/SG/Step': data.position, 'Office of Assignment': data.office,
       'Date of Filing': data.dateOfFiling, 'Date of Effectivity': data.effectivity,
@@ -78,8 +79,8 @@ function createClearance_(data, filedBy) {
     })));
     audit_(ref, filedBy, 'FILED', { employee: data.employeeName, purpose: data.purpose, warnings });
 
-    // 4. Employee notice (cc supervisor, + clearance@ outside test mode — MC-2026-014 §III.A.3).
-    sendFiledNotice_(req, ss.getUrl());
+    // 4. Employee notice: first message of the clearance's update thread (cc supervisor).
+    sendFiledNotice_(getRequest_(ref));
 
     // 5. Route to the first signatory (Immediate Supervisor).
     advance_(ref);
@@ -111,37 +112,4 @@ function shareViewOnly_(fileId, emails) {
 
 function copyList_() {
   return ECL.TEST_MODE ? [] : [ECL.CLEARANCE_GROUP];
-}
-
-function sendFiledNotice_(req, url) {
-  const inner = `
-<p>Dear <b>${escapeHtml_(req.employeeName)}</b>,</p>
-<p>The HRMDD has filed your clearance (CS Form No. 7) for processing under MC-2026-014,
-<i>Electronic Clearance Processing</i>.</p>
-${detailsTable_([
-  ['Reference No.', req.ref], ['Position/SG/Step', req.position], ['Office of Assignment', req.office],
-  ['Purpose', req.purpose === 'Other Mode of Separation' ? `Other: ${req.otherPurpose}` : req.purpose],
-  ['Date of Filing', formatLongDate_(req.dateOfFiling)], ['Date of Effectivity', formatLongDate_(req.effectivity)],
-])}
-<p><b>What happens next</b></p>
-<ol style="padding-left: 20px; line-height: 1.6;">
-  <li><b>Part II:</b> your Immediate Supervisor, then your Head of Office</li>
-  <li><b>Part III:</b> all clearing offices, at the same time</li>
-  <li><b>Part IV:</b> Certification of No Pending Administrative Case</li>
-  <li><b>Part V:</b> Certification by the Acting Executive Vice President</li>
-</ol>
-<p>You will receive an email each time a signatory acts. You can also follow your clearance
-in real time on your live form: the Part currently being processed is highlighted in gold, and
-completed Parts in green.</p>
-${linkButton_(url, 'View My Live Clearance Form')}
-<p style="font-size: 14px; color: #555;">If a clearing office notes an accountability, you will be put in
-direct contact with that office by email. Please settle accountabilities promptly; those unsettled
-30 days after separation may be deducted from your remaining pay (MC-2026-014 &sect;III.D.3).</p>`;
-
-  const cc = [req.supervisorEmail].concat(copyList_());
-  GmailApp.sendEmail(req.personalEmail, `[E-Clearance${ECL.TEST_MODE ? ' TEST' : ''}] Clearance filed: ${req.ref}`, '', {
-    htmlBody: brandedEmail_('Clearance Filed', inner),
-    name: ECL.SENDER_NAME,
-    cc: cc.join(','),
-  });
 }

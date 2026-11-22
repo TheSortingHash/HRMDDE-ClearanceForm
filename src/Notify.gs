@@ -1,6 +1,9 @@
 /**
- * All system emails. Every email copy-furnishes the employee's Immediate Supervisor and, outside
- * TEST_MODE, clearance@dap.edu.ph (MC-2026-014 §III.A.3).
+ * All system emails.
+ *  - Status updates to the employee (filed, each signature, reopen, completion) go to ONE Gmail
+ *    thread per clearance, cc the Immediate Supervisor (+ clearance@ outside TEST_MODE).
+ *  - Not Cleared / pending case / Hold open their own threads, with the Supervisor looped in.
+ *  - Officer "Action needed" emails cc alternates (+ clearance@ outside TEST_MODE).
  */
 
 function webAppUrl_() {
@@ -45,6 +48,62 @@ function employeeRows_(req) {
   ];
 }
 
+/* ------------------------------------------------------------------ update thread */
+
+/** RFC 2047 encoding for non-ASCII header text (names, em dashes). */
+function mimeHeader_(text) {
+  return /^[\x20-\x7E]*$/.test(text) ? text : `=?UTF-8?B?${Utilities.base64Encode(text, Utilities.Charset.UTF_8)}?=`;
+}
+
+/**
+ * Sends an HTML email through the Gmail API so it can be placed in an existing thread.
+ * Returns { id, threadId, messageId } where messageId is the RFC Message-ID header.
+ */
+function sendRaw_(o) {
+  const headers = [
+    `From: ${mimeHeader_(ECL.SENDER_NAME)} <${ECL.HOST_EMAIL}>`,
+    `To: ${o.to}`,
+    o.cc && o.cc.length ? `Cc: ${o.cc.join(', ')}` : '',
+    o.replyTo ? `Reply-To: ${o.replyTo}` : '',
+    `Subject: ${mimeHeader_(o.subject)}`,
+    o.inReplyTo ? `In-Reply-To: ${o.inReplyTo}` : '',
+    o.inReplyTo ? `References: ${o.inReplyTo}` : '',
+    'MIME-Version: 1.0',
+    'Content-Type: text/html; charset=UTF-8',
+    'Content-Transfer-Encoding: base64',
+  ].filter(String);
+  const body = Utilities.base64Encode(o.html, Utilities.Charset.UTF_8).replace(/(.{76})/g, '$1\r\n');
+  const raw = Utilities.base64EncodeWebSafe(headers.join('\r\n') + '\r\n\r\n' + body);
+  const resource = { raw };
+  if (o.threadId) resource.threadId = o.threadId;
+  const sent = Gmail.Users.Messages.send(resource, 'me');
+  const meta = Gmail.Users.Messages.get('me', sent.id, { format: 'metadata', metadataHeaders: ['Message-Id'] });
+  const h = ((meta.payload && meta.payload.headers) || []).find((x) => /^message-id$/i.test(x.name));
+  return { id: sent.id, threadId: sent.threadId, messageId: h ? h.value : '' };
+}
+
+/**
+ * Adds a status update to the clearance's single update thread (starts it on first use).
+ * `req` is a Requests record from readObjects_ (needs _row).
+ */
+function sendUpdate_(req, title, inner) {
+  const base = subject_(`Clearance updates: ${req['Employee Name (HRIS)']} (${req['Ref No']})`);
+  const threadId = req['Update Thread ID'] || '';
+  const first = req['Update Message ID'] || '';
+  const cc = Array.from(new Set(standardCc_(req).map((e) => String(e || '').toLowerCase()).filter(Boolean)))
+    .filter((e) => e !== String(req['Personal Email']).toLowerCase());
+  const res = sendRaw_({
+    to: req['Personal Email'], cc, replyTo: hrmddReplyTo_(),
+    subject: first ? `Re: ${base}` : base,
+    html: brandedEmail_(title, inner), threadId, inReplyTo: first,
+  });
+  if (!first) {
+    updateRow_('Requests', req._row, { 'Update Thread ID': res.threadId, 'Update Message ID': res.messageId });
+    req['Update Thread ID'] = res.threadId;
+    req['Update Message ID'] = res.messageId;
+  }
+}
+
 /* ------------------------------------------------------------------ to signatories */
 
 /** One email per officer listing all of their rows that are now due (e.g. 3 rows for one officer). */
@@ -78,7 +137,8 @@ ${detailsTable_(employeeRows_(req))}
 ${linkButton_(portalUrl_(req['Ref No']), 'Open in E-Clearance Portal')}
 ${portalNoteHtml_()}`;
 
-    const cc = rows.map((s) => s['Alternate Email']).concat(standardCc_(req));
+    // The Supervisor follows progress in the single update thread instead of every request.
+    const cc = rows.map((s) => s['Alternate Email']).concat(copyList_());
     sendMail_(email, subject_(`Action needed: ${req['Employee Name (HRIS)']} (${req['Ref No']})`),
       'Clearance Request', inner, { cc });
   });
@@ -89,14 +149,13 @@ ${portalNoteHtml_()}`;
 function notifySigned_(req, sig, def) {
   const inner = `
 <p>Dear <b>${escapeHtml_(req['Employee Name (HRIS)'])}</b>,</p>
-<p>A signatory has acted on your clearance.</p>
+<p>A signatory has acted on your clearance (${req['Ref No']}).</p>
 ${detailsTable_([
   ['Reference No.', req['Ref No']], ['Office', `Part ${sig.Part} — ${sig.Office}`],
   ['Signatory', sig['Officer Name']], ['Action', def.label], ['Date', fmtDateTime_(sig['Action At'])],
 ])}
 ${linkButton_(req['Live Form URL'], 'View My Live Clearance Form')}`;
-  sendMail_(req['Personal Email'], subject_(`${sig.Office}: ${def.label} (${req['Ref No']})`),
-    'Clearance Update', inner, { cc: standardCc_(req) });
+  sendUpdate_(req, `${def.label}: ${sig.Office}`, inner);
 }
 
 /** Not Cleared / pending case / investigation: direct thread between employee and officer. */
@@ -137,8 +196,7 @@ function notifyReopened_(req, sig, reason) {
 to the signatory for action.</p>
 <div style="background:#fff8e1; border-left:5px solid ${ECL.BRAND.GOLD}; padding:12px; white-space:pre-wrap;">${escapeHtml_(reason)}</div>
 ${linkButton_(req['Live Form URL'], 'View My Live Clearance Form')}`;
-  sendMail_(req['Personal Email'], subject_(`Clearance row reopened: ${sig.Office} (${req['Ref No']})`),
-    'Clearance Reopened', inner, { cc: standardCc_(req), replyTo: hrmddReplyTo_() });
+  sendUpdate_(req, 'Clearance Reopened', inner);
 }
 
 function notifyCompleted_(req) {
@@ -149,6 +207,29 @@ by the Acting Executive Vice President.</p>
 <p>HRMDD will issue the final electronic clearance (PDF with a verification QR code) and send it to
 this email address.</p>
 ${linkButton_(req['Live Form URL'], 'View My Live Clearance Form')}`;
-  sendMail_(req['Personal Email'], subject_(`All signatures complete (${req['Ref No']})`),
-    'Clearance Signed', inner, { cc: standardCc_(req), replyTo: hrmddReplyTo_() });
+  sendUpdate_(req, 'All Signatures Complete', inner);
+}
+
+/** First message of the update thread. */
+function sendFiledNotice_(req) {
+  const inner = `
+<p>Dear <b>${escapeHtml_(req['Employee Name (HRIS)'])}</b>,</p>
+<p>The HRMDD has filed your clearance (CS Form No. 7) for processing under MC-2026-014,
+<i>Electronic Clearance Processing</i>.</p>
+${detailsTable_(employeeRows_(req).concat([['Date of Filing', formatLongDate_(req['Date of Filing'])]]))}
+<p><b>What happens next</b></p>
+<ol style="padding-left: 20px; line-height: 1.6;">
+  <li><b>Part II:</b> your Immediate Supervisor, then your Head of Office</li>
+  <li><b>Part III:</b> all clearing offices, at the same time</li>
+  <li><b>Part IV:</b> Certification of No Pending Administrative Case</li>
+  <li><b>Part V:</b> Certification by the Acting Executive Vice President</li>
+</ol>
+<p>Every signature will be posted <b>in this email thread</b>. You can also follow your clearance in
+real time on your live form: the Part currently being processed is highlighted in gold, and completed
+Parts in green.</p>
+${linkButton_(req['Live Form URL'], 'View My Live Clearance Form')}
+<p style="font-size: 14px; color: #555;">If a clearing office notes an accountability, you will be put in
+direct contact with that office in a separate email. Please settle accountabilities promptly; those
+unsettled 30 days after separation may be deducted from your remaining pay (MC-2026-014 &sect;III.D.3).</p>`;
+  sendUpdate_(req, 'Clearance Filed', inner);
 }

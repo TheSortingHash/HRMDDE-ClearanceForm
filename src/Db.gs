@@ -4,15 +4,18 @@
  */
 const DB_SCHEMA = {
   Settings: ['Key', 'Value', 'Notes'],
-  Requests: ['Ref No', 'Status', 'Stage', 'Filed At', 'Filed By', 'Employee Name (HRIS)', 'Personal Email',
+  Requests: ['Ref No', 'Status', 'Stage', 'Filed At', 'Filed By', 'HRIS Number', 'Employee Name (HRIS)', 'Personal Email',
     'Position/SG/Step', 'Office of Assignment', 'Date of Filing', 'Date of Effectivity', 'Purpose',
     'Other Purpose', 'Supervisor Name', 'Supervisor Email', 'Head Name', 'Head Email',
-    'Live Form ID', 'Live Form URL', 'PDF URL', 'Completed At', 'Notes'],
+    'Live Form ID', 'Live Form URL', 'PDF URL', 'Completed At', 'Notes',
+    'Update Thread ID', 'Update Message ID'],
   Signatories: ['Ref No', 'Row ID', 'Part', 'Step', 'Office', 'Officer Name', 'Officer Email',
     'Alternate Name', 'Alternate Email', 'Status', 'Sent At', 'Due At', 'Extended', 'Action',
     'Action At', 'Acted By', 'Details', 'Notation', 'Last Reminder At'],
   Officers: ['Row ID', 'Part', 'Group', 'Office / Unit', 'Officer Name', 'Officer Title', 'Officer Email',
     'Alternate Name', 'Alternate Email', 'Active'],
+  // Employee directory for intake autofill (same layout as the E-Payment Hub Payee_Database).
+  Employees: ['HRIS Number', 'Employee Name (HRIS)', 'DAP Email', 'Position', 'Office', 'Active'],
   Holidays: ['Date', 'Name', 'Type'],
   AuditLog: ['Timestamp', 'Ref No', 'Actor', 'Event', 'Details'],
 };

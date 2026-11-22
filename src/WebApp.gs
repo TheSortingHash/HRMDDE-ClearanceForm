@@ -39,6 +39,7 @@ function intakePage_(user) {
   t.today = Utilities.formatDate(new Date(), 'Asia/Manila', 'yyyy-MM-dd');
   t.testMode = ECL.TEST_MODE;
   t.portalUrl = `${webAppUrl_()}?page=officer`;
+  t.employeesJson = JSON.stringify(employeeDirectory_()).replace(/</g, '\\u003c');
   return t.evaluate()
     .setTitle('DAP E-Clearance — New Clearance')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1');
@@ -59,6 +60,20 @@ function currentUser_() {
 
 function isRspUser_(email) {
   return !!email && settingList_('RSP_USERS').indexOf(email) >= 0;
+}
+
+/** Active employees for intake autofill: n = HRIS name, h = HRIS no., e = DAP email, p/o = position/office. */
+function employeeDirectory_() {
+  return readObjects_('Employees')
+    .filter((r) => r['Employee Name (HRIS)'] && (r.Active === true || String(r.Active).toUpperCase() === 'TRUE'))
+    .map((r) => ({
+      n: String(r['Employee Name (HRIS)']).trim().toUpperCase(),
+      h: String(r['HRIS Number']).replace(/\.0$/, '').trim(),
+      e: String(r['DAP Email'] || '').trim().toLowerCase(),
+      p: String(r.Position || '').trim(),
+      o: String(r.Office || '').trim(),
+    }))
+    .sort((a, b) => a.n.localeCompare(b.n));
 }
 
 /* ------------------------------------------------------------------ validation */
@@ -82,6 +97,7 @@ function validateIntake_(f) {
     positionTitle: str('positionTitle'),
     sg: str('sg'),
     step: str('step'),
+    hrisNumber: str('hrisNumber'),
     employeeName: str('employeeName').toUpperCase(),
     personalEmail: str('personalEmail').toLowerCase(),
     dateOfFiling: date('dateOfFiling', 'Date of Filing'),
@@ -101,6 +117,7 @@ function validateIntake_(f) {
   if (!HRIS_NAME_RE_.test(data.employeeName)) {
     errors.push('Employee name must follow the HRIS format: SURNAME, FIRST NAME M.I. (e.g., DELA CRUZ, JUAN P.)');
   }
+  if (data.hrisNumber && !/^\d{3,10}$/.test(data.hrisNumber)) errors.push('HRIS Number must contain digits only.');
   if (!EMAIL_RE_.test(data.personalEmail)) errors.push('A valid personal email address is required.');
   else if (/@dap\.edu\.ph$/i.test(data.personalEmail)) errors.push('Use the employee\'s personal email, not the DAP email.');
   if (PURPOSES.indexOf(data.purpose) < 0) errors.push('Purpose is required.');

@@ -2,7 +2,8 @@
   "timeZone": "Asia/Manila",
   "dependencies": {
     "enabledAdvancedServices": [
-      { "userSymbol": "Drive", "serviceId": "drive", "version": "v3" }
+      { "userSymbol": "Drive", "serviceId": "drive", "version": "v3" },
+      { "userSymbol": "Gmail", "serviceId": "gmail", "version": "v1" }
     ]
   },
   "webapp": {

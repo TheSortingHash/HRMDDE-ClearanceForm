@@ -57,8 +57,10 @@
         <legend>Employee</legend>
         <div class="row">
           <div class="f"><label>Name of Employee (HRIS format) <span class="req">*</span></label>
-            <input name="employeeName" class="upper" placeholder="DELA CRUZ, JUAN P." required>
-            <div class="hint">SURNAME, FIRST NAME M.I.</div></div>
+            <input name="employeeName" class="upper" list="empList" autocomplete="off" placeholder="Start typing a surname…" required>
+            <div class="hint" id="empHint">SURNAME, FIRST NAME M.I. — pick from the employee list to autofill.</div></div>
+          <div class="f sm"><label>HRIS No.</label>
+            <input name="hrisNumber" inputmode="numeric" placeholder="Auto"></div>
           <div class="f"><label>Personal Email Address <span class="req">*</span></label>
             <input name="personalEmail" type="email" placeholder="name@gmail.com" required>
             <div class="hint">Not the DAP email. Status updates and the final clearance go here.</div></div>
@@ -100,13 +102,13 @@
         <legend>Part II Signatories</legend>
         <div class="row">
           <div class="f"><label>Immediate Supervisor <span class="req">*</span></label>
-            <input name="supervisorName" class="upper" placeholder="Full name" required></div>
+            <input name="supervisorName" class="upper" list="empList" autocomplete="off" placeholder="Start typing a surname…" required></div>
           <div class="f"><label>Supervisor's DAP Email <span class="req">*</span></label>
             <input name="supervisorEmail" type="email" placeholder="name@dap.edu.ph" required></div>
         </div>
         <div class="row">
           <div class="f"><label>Head of Office <span class="req">*</span></label>
-            <input name="headName" class="upper" placeholder="Full name" required></div>
+            <input name="headName" class="upper" list="empList" autocomplete="off" placeholder="Start typing a surname…" required></div>
           <div class="f"><label>Head of Office's DAP Email <span class="req">*</span></label>
             <input name="headEmail" type="email" placeholder="name@dap.edu.ph" required></div>
         </div>
@@ -114,6 +116,7 @@
       </fieldset>
 
       <div class="actions"><button type="submit">Review</button></div>
+      <datalist id="empList"></datalist>
     </form>
 
     <!-- Step 2: review -->
@@ -142,7 +145,46 @@
 <script>
   var form = document.getElementById('f');
   var purpose = document.getElementById('purpose');
+  var EMP = <?!= employeesJson ?>;
+  var EMP_BY_NAME = {};
+  EMP.forEach(function (x) { EMP_BY_NAME[x.n] = x; });
+  document.getElementById('empList').innerHTML = EMP.map(function (x) {
+    return '<option value="' + x.n.replace(/"/g, '&quot;') + '">' + (x.h ? 'HRIS ' + x.h : '') + '</option>';
+  }).join('');
+
+  function field(n) { return form.elements[n]; }
+  function lookup(name) { return EMP_BY_NAME[String(name || '').trim().toUpperCase()]; }
+
+  // Autofill from the employee directory. Only empty fields (or fields we filled before) are overwritten.
+  function autofill(target, value) {
+    var el = field(target);
+    if (value && (!el.value || el.dataset.auto === '1')) { el.value = value; el.dataset.auto = '1'; }
+  }
+  field('employeeName').addEventListener('change', function () {
+    var x = lookup(this.value);
+    document.getElementById('empHint').textContent = x
+      ? 'Found in the employee directory' + (x.h ? ' · HRIS ' + x.h : '') + '.'
+      : 'Not in the employee directory — please type the name in HRIS format and the HRIS No.';
+    if (!x) return;
+    this.value = x.n;
+    autofill('hrisNumber', x.h);
+    autofill('office', x.o);
+    autofill('positionTitle', x.p);
+  });
+  [['supervisorName', 'supervisorEmail'], ['headName', 'headEmail']].forEach(function (pair) {
+    field(pair[0]).addEventListener('change', function () {
+      var x = lookup(this.value);
+      if (!x) return;
+      this.value = x.n;
+      autofill(pair[1], x.e);
+    });
+  });
+  ['hrisNumber', 'office', 'positionTitle', 'supervisorEmail', 'headEmail'].forEach(function (n) {
+    field(n).addEventListener('input', function () { this.dataset.auto = ''; });
+  });
+
   var labels = {
+    hrisNumber: 'HRIS No.',
     employeeName: 'Name of Employee', personalEmail: 'Personal Email', office: 'Office of Assignment',
     positionTitle: 'Position', sg: 'SG', step: 'Step', dateOfFiling: 'Date of Filing',
     effectivity: 'Date of Effectivity', purpose: 'Purpose', otherPurpose: 'Other Mode of Separation',
@@ -177,7 +219,7 @@
   function check(o) {
     var e = [];
     Object.keys(labels).forEach(function (k) {
-      if (k !== 'otherPurpose' && !o[k]) e.push(labels[k] + ' is required.');
+      if (k !== 'otherPurpose' && k !== 'hrisNumber' && !o[k]) e.push(labels[k] + ' is required.');
     });
     if (o.purpose === 'Other Mode of Separation' && !o.otherPurpose) e.push('Please specify the Other Mode of Separation.');
     if (/@dap\.edu\.ph$/i.test(o.personalEmail)) e.push('Use the employee\'s personal email, not the DAP email.');

@@ -74,8 +74,13 @@ function ensureSettings_(sh) {
 function seedTable_(name, sh) {
   const rows = name === 'Settings' ? [] : SEED_DATA_[name];
   if (name === 'Settings') ensureSettings_(sh);
+  if (name === 'Employees') sh.getRange('A:A').setNumberFormat('@'); // keep HRIS numbers as text
   if (rows && rows.length) sh.getRange(2, 1, rows.length, rows[0].length).setValues(rows);
   if (name === 'Holidays') sh.getRange('A:A').setNumberFormat('yyyy-mm-dd');
+  if (name === 'Employees') {
+    sh.getRange(2, 6, rows.length, 1).insertCheckboxes();
+    sh.getRange(2, 6, rows.length, 1).setValue(true);
+  }
   if (name === 'Officers') {
     sh.getRange(2, 10, Math.max(rows.length, 1), 1).insertCheckboxes();
     sh.getRange(2, 10, rows.length, 1).setValue(true);
@@ -88,6 +93,11 @@ function seedTable_(name, sh) {
  * official addresses in the Officers sheet before go-live.
  */
 const SEED_DATA_ = {
+  // Test entries only. HRMDD will load the full employee list later (HRIS Number as text).
+  Employees: [
+    ['211265', 'ANCHETA, DEAN JOSEPH HANS M.', 'anchetad@dap.edu.ph', '', '', true],
+    ['213147', 'ANCHETA, MARIEL LOUISE P', 'anchetam@dap.edu.ph', '', '', true],
+  ],
   Settings: [
     ['RSP_USERS', 'comben@dap.edu.ph, anchetad@dap.edu.ph', 'DAP accounts allowed to use the intake web app (comma-separated).'],
     ['HRMDD_ADMINS', 'comben@dap.edu.ph', 'DAP accounts that see the All-Clearances dashboard and can reopen rows.'],

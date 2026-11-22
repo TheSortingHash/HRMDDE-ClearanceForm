@@ -29,6 +29,27 @@ Rules enforced on the server:
 - Reopening a row removes its notation, gives it a new 3-working-day deadline, sends later steps that were emailed but not acted on back to waiting, and notifies the officer and employee.
 - Notations read `Electronically signed by NAME · 23 Nov 2026, 10:14 AM`, and say "(alternate)" when an alternate signs.
 
+## Emails
+
+| Email | To | Cc | Thread |
+|---|---|---|---|
+| Clearance filed, each signature, reopen, all signed | Employee (personal email) | Immediate Supervisor (+ clearance@) | **One "Clearance updates" thread per clearance** |
+| Action needed (with portal link) | Signatory, one email listing all their rows | Alternates (+ clearance@) | One per routing step |
+| Not Cleared / pending case / investigation | Employee | Officer, Supervisor (+ clearance@) | Own thread, Reply-To = officer |
+| Part V Hold | Employee | EVP, HRMDD admins, Supervisor (+ clearance@) | Own thread, Reply-To = HRMDD |
+
+"(+ clearance@)" means clearance@dap.edu.ph is copied only when `TEST_MODE` is off. The update thread is
+kept together using the Gmail API (In-Reply-To/References headers), so it shows as one conversation in every inbox.
+
+## Employee directory (autofill)
+
+The **Employees** sheet in the DB follows the E-Payment Hub *Payee_Database* layout: `HRIS Number`,
+`Employee Name (HRIS)`, `DAP Email`, plus optional `Position`, `Office` and `Active`. On the intake form, the
+employee, supervisor and head name fields suggest names as you type. Picking a name fills the HRIS No.
+(and the position and office if present) for the employee, and the DAP email for the supervisor and head. Names
+not in the list can still be typed. For testing, it holds only Dean and Mariel Ancheta. Paste the full list later,
+keeping the HRIS Number column formatted as plain text.
+
 ## Agreed workflow
 
 | Stage | Signatories | Buttons | Deemed clearance |
@@ -64,11 +85,12 @@ Rules enforced on the server:
 
 Signed in as **comben@dap.edu.ph**, in the Apps Script project:
 
-1. Copy in every file from `src/` (`.gs`, `.html`, and `appsscript.json`, which turns on the Drive API
-   advanced service). **Delete `Phase0_Spike.gs` and `Codes.gs`** from the project if they're still there.
+1. Copy in every file from `src/` (`.gs`, `.html`, and `appsscript.json`, which turns on the **Drive API**
+   and **Gmail API** advanced services). **Delete `Phase0_Spike.gs` and `Codes.gs`** from the project if they're still there.
 2. comben@ must be able to open the original CS Form No. 7 sheet (`18c6WDzKDde3Ja8WZ0KfpvgcF1skEQ_eaEcWg1dc6SBs`).
-3. Run **`setupSystem`**. It is safe to re-run: on an existing DB it adds the new columns
-   (Signatories: Alternate Name, Acted By) and the new setting `WEBAPP_URL`.
+3. Run **`setupSystem`** and approve the new Gmail permission. It is safe to re-run: on an existing DB it adds
+   the **Employees** sheet, the new columns (Requests: HRIS Number, Update Thread ID, Update Message ID;
+   Signatories: Alternate Name, Acted By) and the new setting `WEBAPP_URL`.
 4. **Deploy → Manage deployments → Edit → New version** (or a new Web app deployment): Execute as *Me*,
    Who has access *Anyone within Development Academy of the Philippines*.
 5. Optional: paste the `/exec` URL into **Settings → WEBAPP_URL** so email links always use it.
@@ -81,7 +103,10 @@ Pages: `/exec` (intake for RSP users, portal for everyone else), `/exec?page=off
 Use the Phase 1 test clearance, or file a new one. Test officers: anchetam@ (Supervisor in the
 sample, III-1a, 2a, 3a, 3b, EVP), anchetad@ (III-1b, 3c, 4a), fd-omd-gse@ (III-1c, 2b, Legal).
 
-- [ ] Filing emails the **Supervisor only** (Action needed, with a portal link). The Head gets nothing yet.
+- [ ] Intake autofill: typing "ANCHETA" suggests both names. Picking one fills the HRIS No., and picking a Supervisor or Head fills their DAP email.
+- [ ] Filing starts the **Clearance updates** thread (employee, cc Supervisor) and emails the **Supervisor only** (Action needed, with a portal link). The Head gets nothing yet.
+- [ ] Every signature adds a reply to that **same** thread, in both the employee's and the Supervisor's inbox.
+- [ ] Officer "Action needed" emails do **not** copy the Supervisor.
 - [ ] The portal link opens straight to that clearance, with your DAP account detected and no file access requested.
 - [ ] Not Cleared with fewer than 25 characters is blocked. With details, the employee gets the thread, Reply-To is the officer, and A21 shows ☑ not cleared.
 - [ ] The Supervisor clears: the name cell on the form shows the notation, the employee gets an update, and the Head is emailed next.
