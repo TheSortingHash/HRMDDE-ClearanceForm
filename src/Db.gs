@@ -9,15 +9,15 @@ const DB_SCHEMA = {
     'Other Purpose', 'Supervisor Name', 'Supervisor Email', 'Head Name', 'Head Email',
     'Live Form ID', 'Live Form URL', 'PDF URL', 'Completed At', 'Notes'],
   Signatories: ['Ref No', 'Row ID', 'Part', 'Step', 'Office', 'Officer Name', 'Officer Email',
-    'Alternate Email', 'Status', 'Sent At', 'Due At', 'Extended', 'Action', 'Action At', 'Details',
-    'Notation', 'Last Reminder At'],
+    'Alternate Name', 'Alternate Email', 'Status', 'Sent At', 'Due At', 'Extended', 'Action',
+    'Action At', 'Acted By', 'Details', 'Notation', 'Last Reminder At'],
   Officers: ['Row ID', 'Part', 'Group', 'Office / Unit', 'Officer Name', 'Officer Title', 'Officer Email',
     'Alternate Name', 'Alternate Email', 'Active'],
   Holidays: ['Date', 'Name', 'Type'],
   AuditLog: ['Timestamp', 'Ref No', 'Actor', 'Event', 'Details'],
 };
 
-/** Signatory statuses. WAITING = earlier step not done; QUEUED = due to be emailed (Phase 2). */
+/** Signatory statuses. WAITING = an earlier step is not done yet; SENT = emailed, awaiting action. */
 const SIG_STATUS = {
   WAITING: 'WAITING', QUEUED: 'QUEUED', SENT: 'SENT', CLEARED: 'CLEARED',
   NOT_CLEARED: 'NOT_CLEARED', DEEMED_CLEARED: 'DEEMED_CLEARED', HOLD: 'HOLD',
@@ -62,6 +62,17 @@ function appendObjects_(name, objects) {
   const headers = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
   const rows = objects.map((o) => headers.map((h) => (o[h] === undefined ? '' : o[h])));
   sh.getRange(sh.getLastRow() + 1, 1, rows.length, headers.length).setValues(rows);
+}
+
+/** Writes selected fields of one record (row number from readObjects_ `_row`). */
+function updateRow_(name, rowNum, changes) {
+  const sh = table_(name);
+  const headers = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
+  Object.keys(changes).forEach((k) => {
+    const col = headers.indexOf(k);
+    if (col < 0) throw new Error(`Column "${k}" not found in ${name}.`);
+    sh.getRange(rowNum, col + 1).setValue(changes[k] === undefined ? '' : changes[k]);
+  });
 }
 
 /** Settings sheet lookup. */

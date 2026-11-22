@@ -15,9 +15,19 @@ within DAP*:
 - Officers get **no** edit access to the database or the forms. Only the host account writes.
 - An officer sees and acts only on rows assigned to their email or their designated alternate.
 
-> Phase 0 (email buttons that send a pre-filled email) proved that email delivery, codes and DAP
-> sender authentication work. Its button flow has been replaced by the portal. `Phase0_Spike.gs` and
-> `Codes.gs` remain only until Phase 2 removes them.
+The portal has three tabs:
+
+| Tab | Who | What |
+|---|---|---|
+| Pending My Action | every signatory | Their rows that are due, grouped by employee, with the deadline and working days left, and action buttons. Not Cleared, Hold and pending-case actions require at least 25 characters of specific details. |
+| Recently Acted | every signatory | Their last 50 actions, with links to the live forms. |
+| All Clearances | `HRMDD_ADMINS` | Every clearance sorted alphabetically, with search, progress, and links to the live form, PDF, folders, template and DB. Click a row to see each signatory, and **Reopen** a row with a stated reason. |
+
+Rules enforced on the server:
+- A row can only be acted on by its officer or their alternate, once its step is current, and only while every earlier step is done.
+- Cleared, No Pending Case and Certify are final. Only an HRMDD admin can reopen them.
+- Reopening a row removes its notation, gives it a new 3-working-day deadline, sends later steps that were emailed but not acted on back to waiting, and notifies the officer and employee.
+- Notations read `Electronically signed by NAME · 23 Nov 2026, 10:14 AM`, and say "(alternate)" when an alternate signs.
 
 ## Agreed workflow
 
@@ -45,41 +55,43 @@ within DAP*:
 | Phase | Scope | Status |
 |---|---|---|
 | 0 | Gmail button spike | Done (superseded by the Officer Portal) |
-| 1 | Master DB, template cleanup, branded intake web app, live form copy and sharing | **Ready to test** |
-| 2 | Officer Portal, routing II → III → IV → V, notations on the form, employee updates, accountability threads | — |
-| 3 | Working-day calculator, reminders, OB extension, deemed clearance, 30-day reminder | — |
+| 1 | Master DB, template cleanup, branded intake web app, live form copy and sharing | Done |
+| 2 | Officer Portal and All-Clearances dashboard, routing II → III → IV → V, notations, employee updates, accountability and hold threads, OB extension, admin reopen | **Ready to test** |
+| 3 | Reminders, deemed clearance (Parts II–III), 30-day reminder (the working-day calculator and OB extension are already in Phase 2) | — |
 | 4 | PDF export, QR code, verification page | — |
 
-## Setup (Phase 1)
+## Setup
 
 Signed in as **comben@dap.edu.ph**, in the Apps Script project:
 
-1. Copy in every file from `src/`, including `Intake.html` and the updated `appsscript.json`.
-   This turns on the **Drive API** advanced service and the web app settings.
-2. comben@ must be able to open the original CS Form No. 7 sheet
-   (`18c6WDzKDde3Ja8WZ0KfpvgcF1skEQ_eaEcWg1dc6SBs`), because setup copies it.
-3. Run **`setupSystem`** and approve the permissions. The log prints three links:
-   - the folder **DAP E-Clearance System**, with subfolders Template, Live Clearance Forms and Completed Clearances,
-   - the **DAP E-Clearance DB** spreadsheet, with the sheets Settings, Requests, Signatories,
-     Officers (pre-filled with the test addresses), Holidays and AuditLog,
-   - the cleaned-up **template** (CS Form No. 7 with ☐ boxes, named ranges and a Ref. No. slot).
-4. **Deploy → New deployment → Web app**: Execute as *Me*, Who has access *Anyone within
-   Development Academy of the Philippines*. Open the `/exec` URL.
-5. RSP users are listed in **Settings → RSP_USERS**. Anyone else who opens the URL lands on the
-   Officer Portal placeholder.
+1. Copy in every file from `src/` (`.gs`, `.html`, and `appsscript.json`, which turns on the Drive API
+   advanced service). **Delete `Phase0_Spike.gs` and `Codes.gs`** from the project if they're still there.
+2. comben@ must be able to open the original CS Form No. 7 sheet (`18c6WDzKDde3Ja8WZ0KfpvgcF1skEQ_eaEcWg1dc6SBs`).
+3. Run **`setupSystem`**. It is safe to re-run: on an existing DB it adds the new columns
+   (Signatories: Alternate Name, Acted By) and the new setting `WEBAPP_URL`.
+4. **Deploy → Manage deployments → Edit → New version** (or a new Web app deployment): Execute as *Me*,
+   Who has access *Anyone within Development Academy of the Philippines*.
+5. Optional: paste the `/exec` URL into **Settings → WEBAPP_URL** so email links always use it.
+6. Fill in **Holidays** (dates of regular and special non-working holidays and work suspensions) for correct due dates.
 
-Template changes: if you change the cleanup code, run `rebuildTemplate`. Layout tweaks made by hand
-in the template are kept by later copies. Just don't delete its named ranges (Data → Named ranges).
+Pages: `/exec` (intake for RSP users, portal for everyone else), `/exec?page=officer`, `/exec?page=admin`.
 
-### Phase 1 test checklist
+### Phase 2 test checklist
 
-- [ ] The template looks right: ☐ boxes instead of £, signature lines intact, nothing overflowing.
-- [ ] Intake: submit with mistakes (DAP email as the personal email, name without a comma, Other purpose with no text). Each is caught.
-- [ ] Submit a valid request. The live form appears in *Live Clearance Forms* named `ECL-2026-0001 — NAME — CS Form No. 7`:
-  - fields filled (values bold and underlined), purpose box ticked, all 13 signatory names filled,
-  - **Part II header highlighted gold**, Ref. No. at the top right.
-- [ ] The file is shared **view-only** with the personal email and all signatories, and **no** Drive "shared with you" email is sent.
-- [ ] The employee gets the branded "Clearance Filed" email (cc supervisor) with a link that opens the live form.
-- [ ] DB: one Requests row, 13 Signatories rows (II-SUP `QUEUED`, others `WAITING`), and an AuditLog `FILED` entry.
-- [ ] Submitting again for the same personal email is blocked while the first clearance is open.
-- [ ] Opening the web app URL from an account not in RSP_USERS shows the Officer Portal placeholder with that account's email.
+Use the Phase 1 test clearance, or file a new one. Test officers: anchetam@ (Supervisor in the
+sample, III-1a, 2a, 3a, 3b, EVP), anchetad@ (III-1b, 3c, 4a), fd-omd-gse@ (III-1c, 2b, Legal).
+
+- [ ] Filing emails the **Supervisor only** (Action needed, with a portal link). The Head gets nothing yet.
+- [ ] The portal link opens straight to that clearance, with your DAP account detected and no file access requested.
+- [ ] Not Cleared with fewer than 25 characters is blocked. With details, the employee gets the thread, Reply-To is the officer, and A21 shows ☑ not cleared.
+- [ ] The Supervisor clears: the name cell on the form shows the notation, the employee gets an update, and the Head is emailed next.
+- [ ] Head: "On OB / Leave" extends the due date to 7 working days and can only be used once.
+- [ ] The Head clears: Part II turns green, Part III turns gold, and all 9 offices are emailed at once (anchetad@ gets **one** email listing 3 rows).
+- [ ] Part III ticks ✔ in the Cleared or Not Cleared column with a notation in the signature column. Clicking again on a cleared row is refused.
+- [ ] Legal: Ongoing Investigation ticks ☑ on that line. No Pending Case then unticks it and ticks Cleared.
+- [ ] EVP: Hold emails the employee and HRMDD. Certify writes the notation above the EVP name. The employee gets "All signatures complete".
+- [ ] All Clearances (as comben@): alphabetical order, search, progress bar, folder links. Reopen a row and confirm the officer and employee are emailed and that Part V waits.
+- [ ] Someone who isn't assigned sees nothing in Pending, and a direct action attempt is refused.
+
+Template changes: if you change the cleanup code, run `rebuildTemplate`. Layout tweaks made by hand in
+the template are kept by later copies. Just don't delete its named ranges (Data → Named ranges).

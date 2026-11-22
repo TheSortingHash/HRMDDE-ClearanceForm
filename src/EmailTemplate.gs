@@ -30,48 +30,15 @@ function detailsTable_(rows) {
   return `<table style="width: 100%; border-collapse: collapse; margin: 20px 0;">${tr}</table>`;
 }
 
-/** A bulletproof (table-based) email button pointing at a mailto: link. */
-function emailButton_(href, text, color) {
-  return `
-<table role="presentation" cellspacing="0" cellpadding="0" style="display: inline-table; margin: 4px 6px 4px 0;">
-  <tr><td style="background-color: ${color}; border-radius: 5px;">
-    <a href="${href}" target="_blank"
-       style="display: inline-block; padding: 10px 16px; color: #ffffff; font-weight: bold; font-size: 14px; text-decoration: none; border-radius: 5px;">${text}</a>
-  </td></tr>
-</table>`;
-}
-
-/** One signatory row card: office name + the button set for its Part. */
-function rowCard_(ref, row, officerEmail) {
-  const code = makeCode_(ref, row.rowId, officerEmail);
-  const buttons = BUTTON_SETS[row.part]
-    .map((a) => emailButton_(buildMailto_(ref, row.rowId, a, code), ACTIONS[a].button, ACTIONS[a].color))
-    .join('');
-  return `
-<div style="border: 1px solid #ddd; border-left: 5px solid ${ECL.BRAND.GOLD}; padding: 14px; margin: 14px 0; border-radius: 4px;">
-  <div style="font-size: 12px; color: #777; text-transform: uppercase;">Part ${row.part} &middot; Row ${row.rowId}</div>
-  <div style="font-weight: bold; color: ${ECL.BRAND.NAVY}; margin: 4px 0 10px;">${escapeHtml_(row.office)}</div>
-  ${buttons}
-</div>`;
-}
-
 function escapeHtml_(s) {
   return String(s == null ? '' : s)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-/**
- * "How to respond" box for officer request emails, including the MC-2026-014 §III.B.4
- * reminder that a notice of accountability must be specific.
- */
-function officerInstructionsHtml_() {
-  return `
-<p style="background:#fff8e1; border:1px solid ${ECL.BRAND.GOLD}; padding:12px; border-radius:4px; font-size:14px;">
-<b>How to respond:</b> click a button below. Gmail opens a pre-filled email &mdash; just press <b>Send</b>.<br><br>
-For <b>Not Cleared</b>, <b>Hold</b> or a pending case, type the details at the top of that email first.
-Please be specific: name the <b>item or accountability</b> (e.g., property number, amount, document)
-and the <b>action the employee must take</b> to be cleared (MC-2026-014 &sect;III.B.4).<br><br>
-Please do not edit the code block at the bottom of the email.</p>`;
+/** Help line for portal links (Apps Script web apps can fail when several Google accounts are signed in). */
+function portalNoteHtml_() {
+  return `<p style="font-size: 12px; color: #777; text-align: center;">If the portal shows an error, open the
+link in a browser window signed in only to your DAP account (for example, a private/incognito window).</p>`;
 }
 
 /** Table-based button for ordinary web links. */

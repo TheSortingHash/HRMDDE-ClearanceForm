@@ -6,7 +6,8 @@
  *
  * Routes:
  *   ?page=intake            RSP intake form (RSP_USERS only). Default for RSP users.
- *   ?page=officer[&ref=…]   Officer Portal — pending clearances and actions (Phase 2).
+ *   ?page=officer[&ref=…]   Officer Portal — pending clearances and actions.
+ *   ?page=admin             All-Clearances dashboard (HRMDD_ADMINS only).
  *   ?verify=<ref>           QR verification page (Phase 4).
  */
 function doGet(e) {
@@ -14,7 +15,7 @@ function doGet(e) {
   const user = currentUser_();
   const page = p.page || (isRspUser_(user) ? 'intake' : 'officer');
 
-  if (page === 'officer') return officerPortalPage_(user, p);
+  if (page === 'officer' || page === 'admin') return officerPortalPage_(user, p);
   if (!isRspUser_(user)) {
     return messagePage_('Access Restricted', `
       <p>The E-Clearance intake form is limited to the HRMDD Recruitment, Selection and Placement Unit.</p>
@@ -30,14 +31,6 @@ function messagePage_(title, html) {
     .addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }
 
-/** Placeholder until the Officer Portal is built in Phase 2. */
-function officerPortalPage_(user) {
-  return messagePage_('Officer Portal', `
-    <p>Signed in as <b>${escapeHtml_(user || 'an unknown account')}</b>.</p>
-    <p>The Officer Portal, where clearing officers view and act on pending clearances, will be
-    available in the next phase.</p>`);
-}
-
 function intakePage_(user) {
   const t = HtmlService.createTemplateFromFile('Intake');
   t.user = user;
@@ -45,6 +38,7 @@ function intakePage_(user) {
   t.purposes = PURPOSES;
   t.today = Utilities.formatDate(new Date(), 'Asia/Manila', 'yyyy-MM-dd');
   t.testMode = ECL.TEST_MODE;
+  t.portalUrl = `${webAppUrl_()}?page=officer`;
   return t.evaluate()
     .setTitle('DAP E-Clearance — New Clearance')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1');

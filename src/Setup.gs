@@ -46,14 +46,34 @@ function setupDb_(root) {
         .setFontWeight('bold').setBackground(ECL.BRAND.NAVY).setFontColor('#ffffff');
       sh.setFrozenRows(1);
       seedTable_(name, sh);
+    } else {
+      ensureHeaders_(sh, DB_SCHEMA[name]);
     }
   });
+  ensureSettings_(ss.getSheetByName('Settings'));
   const blank = ss.getSheetByName('Sheet1');
   if (blank && ss.getSheets().length > 1) ss.deleteSheet(blank);
 }
 
+/** Adds columns introduced by later phases to an existing table (appended at the end). */
+function ensureHeaders_(sh, headers) {
+  const have = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
+  headers.filter((h) => have.indexOf(h) < 0).forEach((h) => {
+    const col = sh.getLastColumn() + 1;
+    sh.getRange(1, col).setValue(h).setFontWeight('bold')
+      .setBackground(ECL.BRAND.NAVY).setFontColor('#ffffff');
+  });
+}
+
+/** Adds Settings keys introduced by later phases without touching existing values. */
+function ensureSettings_(sh) {
+  const keys = sh.getDataRange().getValues().map((r) => r[0]);
+  SEED_DATA_.Settings.filter((r) => keys.indexOf(r[0]) < 0).forEach((r) => sh.appendRow(r));
+}
+
 function seedTable_(name, sh) {
-  const rows = SEED_DATA_[name];
+  const rows = name === 'Settings' ? [] : SEED_DATA_[name];
+  if (name === 'Settings') ensureSettings_(sh);
   if (rows && rows.length) sh.getRange(2, 1, rows.length, rows[0].length).setValues(rows);
   if (name === 'Holidays') sh.getRange('A:A').setNumberFormat('yyyy-mm-dd');
   if (name === 'Officers') {
@@ -70,7 +90,8 @@ function seedTable_(name, sh) {
 const SEED_DATA_ = {
   Settings: [
     ['RSP_USERS', 'comben@dap.edu.ph, anchetad@dap.edu.ph', 'DAP accounts allowed to use the intake web app (comma-separated).'],
-    ['HRMDD_ADMINS', 'comben@dap.edu.ph', 'DAP accounts allowed to perform admin actions (e.g., reopen a row).'],
+    ['HRMDD_ADMINS', 'comben@dap.edu.ph', 'DAP accounts that see the All-Clearances dashboard and can reopen rows.'],
+    ['WEBAPP_URL', '', 'The web app /exec URL used in email links. Leave blank to detect it automatically.'],
   ],
   Officers: [
     ['III-1a', 'III', '1. Administrative Services', 'Supply and Property Procurement and Management Services (Logistics Division)', 'JOMAR A. PASTRANA', '', 'anchetam@dap.edu.ph', '', '', true],

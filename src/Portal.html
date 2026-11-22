@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<style>
+  :root { --navy: #1C2790; --gold: #CDAE2C; --ink: #333; --line: #ddd; --muted: #666; --red: #B3261E; --green: #1E7B34; --bg: #f4f5f9; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); font-family: Arial, sans-serif; color: var(--ink); font-size: 15px; }
+  .wrap { max-width: 1080px; margin: 20px auto; background: #fff; border: 1px solid var(--line); }
+  header { background: var(--navy); padding: 18px; text-align: center; border-bottom: 5px solid var(--gold); }
+  header img { width: 340px; max-width: 100%; }
+  main { padding: 20px 24px 28px; }
+  h1 { color: var(--navy); text-align: center; font-size: 21px; text-transform: uppercase; margin: 2px 0 4px; }
+  .sub { text-align: center; color: var(--muted); font-size: 13px; margin-bottom: 14px; }
+  .sub a { color: var(--navy); }
+  .test { background: #fff8e1; border: 1px solid var(--gold); padding: 6px 12px; font-size: 13px; border-radius: 4px; margin-bottom: 12px; text-align: center; }
+  .tabs { display: flex; gap: 4px; border-bottom: 2px solid var(--navy); margin-bottom: 16px; flex-wrap: wrap; }
+  .tab { background: #e8e8ee; border: 0; padding: 10px 16px; font-weight: bold; color: var(--ink); border-radius: 5px 5px 0 0; cursor: pointer; font-size: 14px; }
+  .tab.on { background: var(--navy); color: #fff; }
+  .tab .n { background: var(--gold); color: var(--navy); border-radius: 10px; padding: 1px 7px; margin-left: 5px; font-size: 12px; }
+  .hidden { display: none !important; }
+  .toast { padding: 10px 14px; border-radius: 4px; margin-bottom: 14px; white-space: pre-line; }
+  .toast.ok { background: #e6f4ea; border-left: 5px solid var(--green); }
+  .toast.err { background: #fdecea; border-left: 5px solid var(--red); }
+  .empty { text-align: center; color: var(--muted); padding: 30px 10px; }
+  .card { border: 1px solid var(--line); border-left: 5px solid var(--gold); border-radius: 4px; margin-bottom: 16px; }
+  .card.focus { box-shadow: 0 0 0 3px var(--gold); }
+  .card-h { padding: 12px 14px; background: #fafafa; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .card-h .name { font-weight: bold; color: var(--navy); font-size: 16px; }
+  .meta { font-size: 13px; color: var(--muted); margin-top: 3px; }
+  .card-h a { font-size: 13px; color: var(--navy); white-space: nowrap; }
+  .sig { padding: 12px 14px; border-top: 1px dashed var(--line); }
+  .sig:first-of-type { border-top: 0; }
+  .sig-top { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+  .office { font-weight: bold; }
+  .part { font-size: 12px; color: var(--muted); text-transform: uppercase; }
+  .due { font-size: 13px; margin-top: 4px; }
+  .due.warn { color: var(--red); font-weight: bold; }
+  .chip { display: inline-block; font-size: 11px; font-weight: bold; padding: 3px 8px; border-radius: 10px; color: #fff; white-space: nowrap; }
+  .s-SENT { background: var(--navy); } .s-WAITING { background: #999; } .s-CLEARED { background: var(--green); }
+  .s-DEEMED_CLEARED { background: #5b8f68; } .s-NOT_CLEARED, .s-HOLD { background: var(--red); }
+  .prev { background: #fdecea; border-left: 4px solid var(--red); padding: 8px 10px; font-size: 13px; margin-top: 8px; white-space: pre-wrap; }
+  .btns { margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn { border: 0; color: #fff; padding: 9px 14px; border-radius: 5px; font-weight: bold; font-size: 14px; cursor: pointer; }
+  .btn.ghost { background: #e8e8ee; color: var(--ink); }
+  .btn.gold { background: var(--gold); color: var(--navy); }
+  .btn:disabled { opacity: .6; cursor: wait; }
+  table.t { width: 100%; border-collapse: collapse; font-size: 14px; }
+  table.t th { background: var(--navy); color: #fff; text-align: left; padding: 8px; font-size: 13px; }
+  table.t td { border-bottom: 1px solid var(--line); padding: 8px; vertical-align: top; }
+  table.t tr.main { cursor: pointer; }
+  table.t tr.main:hover td { background: #fafaf3; }
+  table.t a { color: var(--navy); }
+  .detail td { background: #fbfbfd; }
+  .links { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  .links a { background: #eef0fa; color: var(--navy); text-decoration: none; padding: 7px 12px; border-radius: 4px; font-size: 13px; font-weight: bold; }
+  input.search { width: 100%; padding: 10px; border: 1px solid #bbb; border-radius: 4px; font-size: 15px; margin-bottom: 12px; }
+  .bar { height: 8px; background: #e5e5e5; border-radius: 4px; overflow: hidden; min-width: 80px; margin-top: 4px; }
+  .bar span { display: block; height: 100%; background: var(--green); }
+  .small { font-size: 12px; color: var(--muted); }
+  .scroll { overflow-x: auto; }
+  .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 10; }
+  .modal { background: #fff; border-top: 5px solid var(--gold); border-radius: 6px; max-width: 520px; width: 100%; padding: 20px; }
+  .modal h2 { color: var(--navy); font-size: 18px; margin: 0 0 8px; }
+  .modal textarea { width: 100%; min-height: 120px; padding: 10px; font-family: inherit; font-size: 14px; border: 1px solid #bbb; border-radius: 4px; }
+  .modal .count { font-size: 12px; color: var(--muted); text-align: right; }
+  .modal .row { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+  footer { text-align: center; font-size: 12px; color: #777; padding: 14px; background: #f9f9f9; border-top: 1px solid var(--line); }
+  @media (max-width: 640px) { .wrap { margin: 0; border: 0; } main { padding: 14px 12px 20px; } .hide-sm { display: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><img src="<?= logo ?>" alt="Development Academy of the Philippines"></header>
+  <main>
+    <h1>E-Clearance Portal</h1>
+    <div class="sub">Signed in as <b><?= user ?></b>
+      <? if (isRsp) { ?> &middot; <a href="<?= intakeUrl ?>">New Clearance Request</a><? } ?></div>
+    <? if (testMode) { ?><div class="test"><b>TEST MODE</b></div><? } ?>
+
+    <div class="tabs">
+      <button class="tab" data-tab="pending">Pending My Action <span class="n" id="nPending">0</span></button>
+      <button class="tab" data-tab="acted">Recently Acted</button>
+      <? if (isAdmin) { ?><button class="tab" data-tab="admin">All Clearances</button><? } ?>
+    </div>
+
+    <div id="toast" class="toast hidden"></div>
+
+    <section id="pending"><div class="empty">Loading…</div></section>
+    <section id="acted" class="hidden"></section>
+    <section id="admin" class="hidden"></section>
+  </main>
+  <footer>DAP E-Clearance System &middot; MC-2026-014, Electronic Clearance Processing</footer>
+</div>
+
+<div id="modal" class="modal-bg hidden">
+  <div class="modal">
+    <h2 id="mTitle"></h2>
+    <div id="mText"></div>
+    <div id="mDetailsWrap">
+      <p id="mPrompt" style="font-weight:bold; font-size:14px; margin:12px 0 6px;"></p>
+      <textarea id="mDetails"></textarea>
+      <div class="count" id="mCount"></div>
+    </div>
+    <div class="row">
+      <button class="btn ghost" id="mCancel">Cancel</button>
+      <button class="btn gold" id="mOk">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  var CFG = <?!= JSON.stringify({ isAdmin: isAdmin, focusRef: focusRef, startTab: startTab }).replace(/</g, '\\u003c') ?>;
+  var MIN = 25;
+  var adminCache = null;
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function $(id) { return document.getElementById(id); }
+  function toast(msg, ok) {
+    var t = $('toast');
+    t.textContent = msg; t.className = 'toast ' + (ok ? 'ok' : 'err');
+    if (!msg) t.classList.add('hidden');
+    window.scrollTo(0, 0);
+  }
+  function chip(status) { return '<span class="chip s-' + esc(status) + '">' + esc(String(status).replace('_', ' ')) + '</span>'; }
+
+  /* ---------------- tabs */
+  function showTab(name) {
+    document.querySelectorAll('.tab').forEach(function (b) { b.classList.toggle('on', b.dataset.tab === name); });
+    ['pending', 'acted', 'admin'].forEach(function (s) { var el = $(s); if (el) el.classList.toggle('hidden', s !== name); });
+    if (name === 'admin' && !adminCache) loadAdmin();
+  }
+  document.querySelectorAll('.tab').forEach(function (b) { b.onclick = function () { toast(''); showTab(b.dataset.tab); }; });
+
+  /* ---------------- officer views */
+  function dueText(r) {
+    if (r.daysLeft === null || r.daysLeft === undefined || !r.dueAt) return '';
+    var t = 'Due ' + r.dueAt + (r.extended ? ' (extended)' : '');
+    var warn = r.daysLeft <= 0;
+    if (r.status === 'SENT') {
+      if (r.daysLeft < 0) t += ' · overdue' + (r.deemedApplies ? ' — the employee may be deemed cleared' : '');
+      else if (r.daysLeft === 0) t += ' · due today';
+      else t += ' · ' + r.daysLeft + ' working day' + (r.daysLeft === 1 ? '' : 's') + ' left';
+    } else { warn = false; }
+    return '<div class="due' + (warn ? ' warn' : '') + '">' + esc(t) + '</div>';
+  }
+
+  function renderPending(data) {
+    $('nPending').textContent = data.pending.reduce(function (n, g) { return n + g.rows.length; }, 0);
+    if (!data.pending.length) {
+      $('pending').innerHTML = '<div class="empty">No clearances are waiting for your action. 🎉</div>';
+      return;
+    }
+    $('pending').innerHTML = data.pending.map(function (g) {
+      return '<div class="card" id="card-' + esc(g.ref) + '">' +
+        '<div class="card-h"><div><div class="name">' + esc(g.employee) + '</div>' +
+        '<div class="meta">' + esc(g.position) + ' · ' + esc(g.office) + '</div>' +
+        '<div class="meta">' + esc(g.purpose) + ' · Effectivity: <b>' + esc(g.effectivity) + '</b> · ' + esc(g.ref) + '</div></div>' +
+        '<div><a href="' + esc(g.liveUrl) + '" target="_blank">View live form ↗</a></div></div>' +
+        g.rows.map(function (r) {
+          return '<div class="sig"><div class="sig-top"><div><div class="part">Part ' + esc(r.part) + '</div>' +
+            '<div class="office">' + esc(r.office) + '</div>' + dueText(r) + '</div><div>' + chip(r.status) + '</div></div>' +
+            (r.details ? '<div class="prev"><b>Your notes:</b> ' + esc(r.details) + '</div>' : '') +
+            (r.blocked ? '<div class="due">Waiting: an earlier Part of this clearance was reopened by HRMDD and must be completed first.</div>' : '') +
+            '<div class="btns">' + r.actions.map(function (a) {
+              return '<button class="btn" style="background:' + esc(a.color) + '" data-ref="' + esc(g.ref) +
+                '" data-row="' + esc(r.rowId) + '" data-act="' + esc(a.key) + '">' + esc(a.label) + '</button>';
+            }).join('') + '</div></div>';
+        }).join('') + '</div>';
+    }).join('');
+
+    var actionsByKey = {};
+    data.pending.forEach(function (g) { g.rows.forEach(function (r) {
+      r.actions.forEach(function (a) { actionsByKey[g.ref + '|' + r.rowId + '|' + a.key] = { a: a, r: r, g: g }; });
+    }); });
+    $('pending').querySelectorAll('button[data-act]').forEach(function (b) {
+      b.onclick = function () { openAction(actionsByKey[b.dataset.ref + '|' + b.dataset.row + '|' + b.dataset.act]); };
+    });
+
+    if (CFG.focusRef) {
+      var card = $('card-' + CFG.focusRef);
+      if (card) { card.classList.add('focus'); card.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+      else toast('Clearance ' + CFG.focusRef + ' has nothing pending for your action.', true);
+      CFG.focusRef = '';
+    }
+  }
+
+  function renderActed(data) {
+    if (!data.acted.length) { $('acted').innerHTML = '<div class="empty">No actions yet.</div>'; return; }
+    $('acted').innerHTML = '<div class="scroll"><table class="t"><tr><th>Date</th><th>Employee</th><th class="hide-sm">Office</th><th>Action</th><th></th></tr>' +
+      data.acted.map(function (a) {
+        return '<tr><td>' + esc(a.at) + '</td><td>' + esc(a.employee) + '<div class="small">' + esc(a.ref) + '</div></td>' +
+          '<td class="hide-sm">' + esc(a.office) + '</td><td>' + chip(a.status) + '<div class="small">' + esc(a.action) + '</div></td>' +
+          '<td><a href="' + esc(a.liveUrl) + '" target="_blank">Form ↗</a></td></tr>';
+      }).join('') + '</table></div>';
+  }
+
+  function loadPortal() {
+    google.script.run.withSuccessHandler(function (d) { MIN = d.minDetails; renderPending(d); renderActed(d); })
+      .withFailureHandler(function (e) { toast(e.message || String(e)); $('pending').innerHTML = ''; })
+      .portalData();
+  }
+
+  /* ---------------- modal */
+  var pendingSubmit = null;
+  function openModal(title, html, prompt, minLen, onOk) {
+    $('mTitle').textContent = title;
+    $('mText').innerHTML = html;
+    $('mDetails').value = '';
+    $('mDetailsWrap').classList.toggle('hidden', !prompt);
+    $('mPrompt').textContent = prompt || '';
+    var count = function () {
+      var n = $('mDetails').value.trim().length;
+      $('mCount').textContent = n + ' / ' + minLen + ' characters minimum';
+      $('mOk').disabled = !!prompt && n < minLen;
+    };
+    $('mDetails').oninput = count; count();
+    $('mOk').disabled = !!prompt && minLen > 0;
+    $('mOk').textContent = 'Confirm';
+    $('modal').classList.remove('hidden');
+    if (prompt) $('mDetails').focus();
+    pendingSubmit = onOk;
+  }
+  function closeModal() { $('modal').classList.add('hidden'); pendingSubmit = null; }
+  $('mCancel').onclick = closeModal;
+  $('mOk').onclick = function () {
+    if (!pendingSubmit) return;
+    $('mOk').disabled = true; $('mOk').textContent = 'Saving…';
+    pendingSubmit($('mDetails').value.trim());
+  };
+
+  function openAction(x) {
+    var a = x.a, r = x.r, g = x.g;
+    var html = '<p>Record <b>' + esc(a.full) + '</b> for <b>' + esc(r.office) + '</b><br>on the clearance of <b>' +
+      esc(g.employee) + '</b> (' + esc(g.ref) + ')?</p>' +
+      (a.key === 'CLEARED' || a.key === 'CERTIFY' || a.key === 'NO_PENDING_CASE'
+        ? '<p class="small">This places an electronic signature notation with your name and the date on the clearance form. Only HRMDD can reopen it afterwards.</p>' : '') +
+      (a.needsDetails ? '<p class="small">Be specific: name the item or accountability (e.g., property number, amount, document) and the action the employee must take (MC-2026-014 §III.B.4). The employee receives this by email and can reply to you directly.</p>' : '');
+    openModal(a.full, html, a.needsDetails ? a.prompt : '', a.needsDetails ? MIN : 0, function (details) {
+      google.script.run
+        .withSuccessHandler(function (res) { closeModal(); toast(res.message, true); renderPending(res.data); renderActed(res.data); adminCache = null; })
+        .withFailureHandler(function (e) { closeModal(); toast(e.message || String(e)); })
+        .portalAct(g.ref, r.rowId, a.key, details);
+    });
+  }
+
+  /* ---------------- admin dashboard */
+  function stageText(c) {
+    if (c.status === 'COMPLETED') return 'Completed';
+    if (c.status === 'SIGNED') return 'All signed · PDF pending';
+    if (c.status === 'CANCELLED') return 'Cancelled';
+    return 'Part ' + c.stage;
+  }
+
+  function renderAdmin(d) {
+    var L = d.links;
+    var links = [['📁 E-Clearance folder', L.root], ['📄 Live forms', L.live], ['✅ Completed (PDF)', L.completed],
+      ['🗂 Template', L.template], ['🗄 Database', L.db]]
+      .filter(function (x) { return x[1]; })
+      .map(function (x) { return '<a href="' + esc(x[1]) + '" target="_blank">' + x[0] + '</a>'; }).join('');
+    $('admin').innerHTML = '<div class="links">' + links + '</div>' +
+      '<input class="search" id="search" placeholder="Search by name, reference no., office, purpose or status…">' +
+      '<div class="small" id="adminCount" style="margin-bottom:8px"></div>' +
+      '<div class="scroll"><table class="t" id="adminTable"></table></div>';
+    $('search').oninput = function () { drawAdminRows(d.list, this.value); };
+    drawAdminRows(d.list, '');
+  }
+
+  function drawAdminRows(list, q) {
+    q = String(q || '').toLowerCase().trim();
+    var rows = list.filter(function (c) {
+      if (!q) return true;
+      return [c.employee, c.ref, c.office, c.purpose, c.position, stageText(c)].join(' ').toLowerCase().indexOf(q) >= 0;
+    });
+    $('adminCount').textContent = rows.length + ' of ' + list.length + ' clearances · sorted alphabetically · click a row for details';
+    var html = '<tr><th>Employee</th><th class="hide-sm">Office</th><th>Stage</th><th>Progress</th><th class="hide-sm">Effectivity</th><th>Files</th></tr>';
+    rows.forEach(function (c, i) {
+      var pct = c.total ? Math.round(100 * c.done / c.total) : 0;
+      html += '<tr class="main" data-i="' + i + '"><td><b>' + esc(c.employee) + '</b><div class="small">' + esc(c.ref) + ' · ' + esc(c.purpose) + '</div></td>' +
+        '<td class="hide-sm">' + esc(c.office) + '</td>' +
+        '<td>' + esc(stageText(c)) + (c.flagged ? '<div class="small" style="color:var(--red)">' + c.flagged + ' not cleared / on hold</div>' : '') + '</td>' +
+        '<td>' + c.done + ' / ' + c.total + '<div class="bar"><span style="width:' + pct + '%"></span></div></td>' +
+        '<td class="hide-sm">' + esc(c.effectivity) + '</td>' +
+        '<td><a href="' + esc(c.liveUrl) + '" target="_blank">Live form ↗</a>' +
+        (c.pdfUrl ? '<br><a href="' + esc(c.pdfUrl) + '" target="_blank">PDF ↗</a>' : '') + '</td></tr>' +
+        '<tr class="detail hidden" id="det-' + i + '"><td colspan="6">' + detailTable(c) + '</td></tr>';
+    });
+    $('adminTable').innerHTML = html;
+    $('adminTable').querySelectorAll('tr.main').forEach(function (tr) {
+      tr.onclick = function (ev) {
+        if (ev.target.tagName === 'A') return;
+        $('det-' + tr.dataset.i).classList.toggle('hidden');
+      };
+    });
+    $('adminTable').querySelectorAll('button[data-reopen]').forEach(function (b) {
+      b.onclick = function () { openReopen(b.dataset.ref, b.dataset.row, b.dataset.office); };
+    });
+  }
+
+  function detailTable(c) {
+    return '<div class="small" style="margin-bottom:6px">' + esc(c.position) + ' · Filed ' + esc(c.filed) +
+      (c.completedAt ? ' · All signed ' + esc(c.completedAt) : '') + '</div>' +
+      '<table class="t"><tr><th>Part</th><th>Office / Signatory</th><th>Status</th><th class="hide-sm">Sent · Due</th><th>Acted</th><th></th></tr>' +
+      c.rows.map(function (r) {
+        return '<tr><td>' + esc(r.part) + '</td><td>' + esc(r.office) + '<div class="small">' + esc(r.officer) + ' · ' + esc(r.email) + '</div>' +
+          (r.details ? '<div class="prev">' + esc(r.details) + '</div>' : '') + '</td>' +
+          '<td>' + chip(r.status) + '</td><td class="hide-sm small">' + esc(r.sentAt) + (r.dueAt ? ' · due ' + esc(r.dueAt) : '') + '</td>' +
+          '<td class="small">' + esc(r.actedAt) + (r.actedBy ? '<br>' + esc(r.actedBy) : '') + '</td>' +
+          '<td>' + (r.reopenable ? '<button class="btn ghost" data-reopen="1" data-ref="' + esc(c.ref) + '" data-row="' + esc(r.rowId) +
+            '" data-office="' + esc(r.office) + '">Reopen</button>' : '') + '</td></tr>';
+      }).join('') + '</table>';
+  }
+
+  function openReopen(ref, rowId, office) {
+    openModal('Reopen row', '<p>Send <b>' + esc(office) + '</b> on ' + esc(ref) +
+      ' back to the signatory for action? Its notation is removed and the officer and employee are notified.</p>',
+      'Reason for reopening (recorded in the audit log and sent to the officer and employee):', 10, function (reason) {
+        google.script.run
+          .withSuccessHandler(function (res) { closeModal(); toast(res.message, true); adminCache = res.data; renderAdmin(res.data); loadPortal(); })
+          .withFailureHandler(function (e) { closeModal(); toast(e.message || String(e)); })
+          .adminReopen(ref, rowId, reason);
+      });
+  }
+
+  function loadAdmin() {
+    $('admin').innerHTML = '<div class="empty">Loading…</div>';
+    google.script.run.withSuccessHandler(function (d) { adminCache = d; renderAdmin(d); })
+      .withFailureHandler(function (e) { toast(e.message || String(e)); })
+      .adminData();
+  }
+
+  showTab(CFG.startTab);
+  loadPortal();
+</script>
+</body>
+</html>

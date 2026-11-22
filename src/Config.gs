@@ -4,8 +4,6 @@
  */
 const ECL = {
   HOST_EMAIL: 'comben@dap.edu.ph',
-  // Plus-address that receives the officers' button emails. Gmail delivers it to the host inbox.
-  ACTION_ADDRESS: 'comben+eclearance@dap.edu.ph',
   SENDER_NAME: 'DAP E-Clearance System',
   // MC-2026-014 §III.A.3: copy-furnish on all correspondence. Suppressed while TEST_MODE is true.
   CLEARANCE_GROUP: 'clearance@dap.edu.ph',
@@ -17,44 +15,41 @@ const ECL = {
     LOGO: 'https://i.imgur.com/jaEbfAR.png',
   },
 
-  LABEL_PROCESSED: 'E-Clearance/Processed',
-  LABEL_REJECTED: 'E-Clearance/Rejected',
-
   // Minimum characters required when an action needs a written explanation.
   MIN_DETAILS_LENGTH: 25,
 };
 
 /**
- * Every action a signatory can take from an email button.
+ * Every action a signatory can take in the Officer Portal.
  * `final: true` = once recorded, only an HRMDD admin action can reopen the row.
  */
 const ACTIONS = {
   CLEARED: {
-    label: 'Cleared', button: 'CLEARED', color: '#1E7B34', final: true,
+    label: 'Cleared', button: 'Cleared', color: '#1E7B34', final: true, result: 'CLEARED',
   },
   NOT_CLEARED: {
-    label: 'Not Cleared', button: 'NOT CLEARED', color: '#B3261E', needsDetails: true,
+    label: 'Not Cleared', button: 'Not Cleared', color: '#B3261E', needsDetails: true, result: 'NOT_CLEARED',
     prompt: 'Accountability and action needed to settle it:',
   },
   EXTEND_OB: {
-    label: 'On Official Business / Leave (extended to 7 working days)', button: 'ON OB / LEAVE', color: '#5F6368',
+    label: 'On Official Business / Leave (extended to 7 working days)', button: 'On OB / Leave (+7 days)', color: '#5F6368',
   },
   NO_PENDING_CASE: {
-    label: 'No pending administrative case', button: 'NO PENDING CASE', color: '#1E7B34', final: true,
+    label: 'No pending administrative case', button: 'No Pending Case', color: '#1E7B34', final: true, result: 'CLEARED',
   },
   PENDING_ADMIN_CASE: {
-    label: 'With pending administrative case', button: 'WITH PENDING ADMIN CASE', color: '#B3261E', needsDetails: true,
+    label: 'With pending administrative case', button: 'With Pending Admin Case', color: '#B3261E', needsDetails: true, result: 'NOT_CLEARED',
     prompt: 'Case reference no. and current status:',
   },
   ONGOING_INVESTIGATION: {
-    label: 'With ongoing investigation (no formal charge yet)', button: 'ONGOING INVESTIGATION', color: '#B3261E', needsDetails: true,
+    label: 'With ongoing investigation (no formal charge yet)', button: 'Ongoing Investigation', color: '#B3261E', needsDetails: true, result: 'NOT_CLEARED',
     prompt: 'Matter under investigation and action needed, if any:',
   },
   CERTIFY: {
-    label: 'Certified', button: 'CERTIFY', color: '#1E7B34', final: true,
+    label: 'Certified', button: 'Certify', color: '#1E7B34', final: true, result: 'CLEARED',
   },
   HOLD: {
-    label: 'On Hold', button: 'HOLD', color: '#B3261E', needsDetails: true,
+    label: 'On Hold', button: 'Hold', color: '#B3261E', needsDetails: true, result: 'HOLD',
     prompt: 'Reason for hold and action needed before certification:',
   },
 };
@@ -106,6 +101,11 @@ const SIGNATORY_ROWS = [
   { rowId: 'IV-a', part: 'IV', step: 4, source: 'directory', sheetRow: 40 },
   { rowId: 'V-EVP', part: 'V', step: 5, source: 'directory', cells: { name: 'A50', sign: 'A49' } },
 ];
+
+/** MC-2026-014 §III.B.2: 3 working days, 7 if the officer is on official business/leave/travel. */
+const DEADLINE = { NORMAL: 3, EXTENDED: 7 };
+/** Parts where a lapsed deadline results in deemed clearance (§III.E). Applied in Phase 3. */
+const DEEMED_PARTS = ['II', 'III'];
 
 /** Stage highlight colours on the live form. */
 const STAGE_COLORS = { DONE: '#E6F4EA', CURRENT: '#FFE699' };

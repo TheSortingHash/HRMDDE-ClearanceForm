@@ -10,8 +10,8 @@ function buildSignatories_(data, officers) {
 
   const missing = [];
   const list = SIGNATORY_ROWS.map((row) => {
-    if (row.rowId === 'II-SUP') return { ...row, name: data.supervisorName, email: data.supervisorEmail, alternate: '' };
-    if (row.rowId === 'II-HEAD') return { ...row, name: data.headName, email: data.headEmail, alternate: '' };
+    if (row.rowId === 'II-SUP') return { ...row, name: data.supervisorName, email: data.supervisorEmail, alternate: '', alternateName: '' };
+    if (row.rowId === 'II-HEAD') return { ...row, name: data.headName, email: data.headEmail, alternate: '', alternateName: '' };
     const o = byRow[row.rowId];
     if (!o || !o['Officer Name'] || !o['Officer Email']) {
       missing.push(row.rowId);
@@ -24,6 +24,7 @@ function buildSignatories_(data, officers) {
       title: String(o['Officer Title'] || '').trim(),
       email: String(o['Officer Email']).trim().toLowerCase(),
       alternate: String(o['Alternate Email'] || '').trim().toLowerCase(),
+      alternateName: String(o['Alternate Name'] || '').trim(),
     };
   });
   if (missing.length) {
@@ -57,7 +58,7 @@ function createClearance_(data, filedBy) {
     signatories.forEach((s) => { viewers.push(s.email); if (s.alternate) viewers.push(s.alternate); });
     const warnings = shareViewOnly_(file.getId(), viewers);
 
-    // 3. DB records. Part II Supervisor is first in line; Phase 2 sends the request.
+    // 3. DB records. Everyone starts WAITING; advance_() below emails the first signatory.
     const now = new Date();
     appendObjects_('Requests', [{
       'Ref No': ref, Status: 'IN_PROGRESS', Stage: 'II', 'Filed At': now, 'Filed By': filedBy,
@@ -71,13 +72,17 @@ function createClearance_(data, filedBy) {
     }]);
     appendObjects_('Signatories', signatories.map((s) => ({
       'Ref No': ref, 'Row ID': s.rowId, Part: s.part, Step: s.step, Office: s.office,
-      'Officer Name': s.name, 'Officer Email': s.email, 'Alternate Email': s.alternate,
-      Status: s.step === 1 ? SIG_STATUS.QUEUED : SIG_STATUS.WAITING, Extended: false,
+      'Officer Name': s.name, 'Officer Email': s.email,
+      'Alternate Name': s.alternateName, 'Alternate Email': s.alternate,
+      Status: SIG_STATUS.WAITING, Extended: false,
     })));
     audit_(ref, filedBy, 'FILED', { employee: data.employeeName, purpose: data.purpose, warnings });
 
     // 4. Employee notice (cc supervisor, + clearance@ outside test mode — MC-2026-014 §III.A.3).
     sendFiledNotice_(req, ss.getUrl());
+
+    // 5. Route to the first signatory (Immediate Supervisor).
+    advance_(ref);
 
     return { ref, employeeName: data.employeeName, url: ss.getUrl(), warnings };
   } finally {
