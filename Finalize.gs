@@ -12,7 +12,11 @@
  *    is known, then its content is replaced with the exported PDF).
  */
 
-const QR_SIZE_PX = fs_(120); // on-sheet size: fits rows 1–5 of the scaled template, inside the right border
+/** On-sheet QR size: fits rows 1–5 of the scaled template, inside the right border. (A function, not a
+ * top-level constant: Apps Script may load this file before Config.gs.) */
+function qrSizePx_() {
+  return fs_(120);
+}
 
 function finalizeClearance_(ref, actor) {
   const req = getRequest_(ref);
@@ -41,8 +45,8 @@ function finalizeClearance_(ref, actor) {
     sheet.getImages().forEach((img) => { if (img.getAltTextTitle() === 'ECL_QR') img.remove(); });
     // Anchored in column M, offset so the QR's right edge sits just inside column O (M+N+O = 273 px).
     const mno = sheet.getColumnWidth(13) + sheet.getColumnWidth(14) + sheet.getColumnWidth(15);
-    const qr = sheet.insertImage(qrPngBlob_(qrTarget), 13, 1, Math.max(0, mno - QR_SIZE_PX - fs_(4)), fs_(2));
-    qr.setWidth(QR_SIZE_PX).setHeight(QR_SIZE_PX).setAltTextTitle('ECL_QR')
+    const qr = sheet.insertImage(qrPngBlob_(qrTarget), 13, 1, Math.max(0, mno - qrSizePx_() - fs_(4)), fs_(2));
+    qr.setWidth(qrSizePx_()).setHeight(qrSizePx_()).setAltTextTitle('ECL_QR')
       .setAltTextDescription(`Scan to verify ${ref}`);
     highlightStage_(ss, 'COMPLETED');
     SpreadsheetApp.flush();

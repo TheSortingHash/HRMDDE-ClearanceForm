@@ -3,8 +3,9 @@
  * → Part V), recording actions, writing notations on the live form, and HRMDD reopen.
  * Callers that change data hold the script lock.
  */
-const DONE_STATUSES = [SIG_STATUS.CLEARED, SIG_STATUS.DEEMED_CLEARED];
-const ACTIONABLE_STATUSES = [SIG_STATUS.SENT, SIG_STATUS.NOT_CLEARED, SIG_STATUS.HOLD];
+// Literal values (not SIG_STATUS.*): top-level code must not depend on another file's load order.
+const DONE_STATUSES = ['CLEARED', 'DEEMED_CLEARED'];
+const ACTIONABLE_STATUSES = ['SENT', 'NOT_CLEARED', 'HOLD'];
 
 function isDone_(s) {
   return DONE_STATUSES.indexOf(s.Status) >= 0;
