@@ -72,14 +72,16 @@ function buildMailto_(ref, rowId, action, code) {
  * Returns {ref,rowId,action,code,details,source} or null.
  */
 function parseCommand_(subject, plainBody) {
-  const body = String(plainBody || '').replace(/\r\n/g, '\n');
+  const body = String(plainBody || '').replace(/\r\n?/g, '\n');
   const grab = (re) => { const m = body.match(re); return m ? m[1].trim() : ''; };
 
+  // Keys are matched anywhere, not only at line starts: the Gmail mobile app can run
+  // the code-block lines together.
   let cmd = null;
-  const ref = grab(/^\s*>?\s*REF:\s*(\S+)/m);
-  const rowId = grab(/^\s*>?\s*ROW:\s*(\S+)/m);
-  const action = grab(/^\s*>?\s*ACTION:\s*([A-Z_]+)/m);
-  const code = grab(/^\s*>?\s*CODE:\s*([A-Z0-9]+)/mi);
+  const ref = grab(/\bREF:\s*(ECL-[A-Z0-9]+-\d+)/i).toUpperCase();
+  const rowId = grab(/\bROW:\s*((?:II|III|IV|V)-[A-Za-z0-9]+)/);
+  const action = grab(/\bACTION:\s*([A-Z_]+)/);
+  const code = grab(/\bCODE:\s*([A-Z2-9]{8})/i);
   if (ref && rowId && action && code) {
     cmd = { ref, rowId, action, code: code.toUpperCase(), source: 'body' };
   } else {
@@ -96,12 +98,19 @@ function parseCommand_(subject, plainBody) {
   let details = cut >= 0 ? body.slice(0, cut) : body
     .split('\n').filter((l) => !/^\s*>/.test(l)).join('\n')
     .replace(/\nOn .+wrote:\s*$/s, '');
-  details = details.trim();
+  // Gmail re-wraps plain text, so prompts are matched with any whitespace between words.
   const def = ACTIONS[cmd.action];
-  if (def && def.prompt) details = details.replace(def.prompt, '').trim();
-  details = details.replace(/^Please send this email as is to record:.*$/m, '').trim();
-  cmd.details = details;
+  if (def && def.prompt) details = details.replace(looseRegex_(def.prompt), '');
+  details = details.replace(/Please\s+send\s+this\s+email\s+as\s+is\s+to\s+record:[^\n]*(\n[^\n]*\.)?/i, '');
+  cmd.details = details.trim();
   return cmd;
+}
+
+/** Regex matching `text` with any run of whitespace allowed between its words. */
+function looseRegex_(text) {
+  const words = String(text).trim().split(/\s+/)
+    .map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  return new RegExp(words.join('\\s+'), 'i');
 }
 
 /** "Juan Dela Cruz <jdc@dap.edu.ph>" -> "jdc@dap.edu.ph" */

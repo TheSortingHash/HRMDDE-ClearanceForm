@@ -38,7 +38,7 @@ const SPIKE = {
 };
 
 const LOG_HEADERS_ = ['Processed At', 'Email Sent At', 'Sender', 'Ref', 'Row', 'Action', 'Parsed From',
-  'Code OK', 'Auth-Results', 'Outcome', 'Details', 'Message ID', 'Subject'];
+  'Code OK', 'Auth-Results', 'Outcome', 'Details', 'Message ID', 'Subject', 'Body (if subject fallback)'];
 
 /* ---------------------------------------------------------------- send */
 
@@ -99,7 +99,8 @@ function spikeProcessInbox() {
         sheet.appendRow([new Date(), msg.getDate(), sender, result.cmd ? result.cmd.ref : '',
           result.cmd ? result.cmd.rowId : '', result.cmd ? result.cmd.action : '',
           result.cmd ? result.cmd.source : '', result.codeOk, result.auth, result.outcome,
-          result.cmd ? result.cmd.details : '', id, msg.getSubject()]);
+          result.cmd ? result.cmd.details : '', id, msg.getSubject(),
+          result.cmd && result.cmd.source === 'subject' ? msg.getPlainBody().slice(0, 500) : '']);
         seen.add(id);
         if (!result.ok) rejected = true;
       });
@@ -125,16 +126,17 @@ function handleCommandMessage_(msg, sender) {
   };
 
   if (!cmd) return reject('The clearance code could not be read. Please use the buttons in the original request email without editing the code block.');
-  // DAP mail is DKIM-signed by gappssmtp.com (Google default), so rely on SPF/DMARC for
-  // dap.edu.ph. DAP's DMARC policy is p=NONE, so require a positive pass, not just "no fail".
-  const authOk = /dmarc=pass/i.test(res.auth) ||
-    /spf=pass[^;]*smtp\.mailfrom=[^;\s]*@dap\.edu\.ph/i.test(res.auth);
-  if (!authOk || /(spf|dmarc)=fail/i.test(res.auth)) return reject('The email failed DAP sender authentication.');
   if (cmd.ref !== SPIKE.REF) return reject(`Unknown reference number ${cmd.ref}.`);
 
   const row = SPIKE.ROWS.find((r) => r.rowId === cmd.rowId);
   if (!row) return reject(`Unknown row ${cmd.rowId}.`);
   if (sender !== row.officer.toLowerCase()) return reject(`Row ${row.rowId} is assigned to a different clearing officer.`);
+
+  // DAP mail is DKIM-signed by gappssmtp.com (Google default), so rely on SPF/DMARC for
+  // dap.edu.ph. DAP's DMARC policy is p=NONE, so require a positive pass, not just "no fail".
+  const authOk = /dmarc=pass/i.test(res.auth) ||
+    /spf=pass[^;]*smtp\.mailfrom=[^;\s]*@dap\.edu\.ph/i.test(res.auth);
+  if (!authOk || /(spf|dmarc)=fail/i.test(res.auth)) return reject('The email failed DAP sender authentication.');
 
   res.codeOk = verifyCode_(cmd.ref, cmd.rowId, sender, cmd.code);
   if (!res.codeOk) return reject('The verification code does not match.');
@@ -247,8 +249,11 @@ function getLogSheet_() {
     sh.getRange(1, 1, 1, LOG_HEADERS_.length).setFontWeight('bold')
       .setBackground(ECL.BRAND.NAVY).setFontColor('#ffffff');
   }
+  const log = ss.getSheetByName('Log');
+  // Logs created by an earlier version lack the newest column header.
+  log.getRange(1, 1, 1, LOG_HEADERS_.length).setValues([LOG_HEADERS_]);
   console.log('Phase 0 log: ' + ss.getUrl());
-  return ss.getSheetByName('Log');
+  return log;
 }
 
 function getOrCreateLabel_(name) {

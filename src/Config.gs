@@ -34,7 +34,7 @@ const ACTIONS = {
   },
   NOT_CLEARED: {
     label: 'Not Cleared', button: 'NOT CLEARED', color: '#B3261E', needsDetails: true,
-    prompt: 'Describe the accountability and the specific action the employee must take to settle it:',
+    prompt: 'Accountability and action needed to settle it:',
   },
   EXTEND_OB: {
     label: 'On Official Business / Leave (extended to 7 working days)', button: 'ON OB / LEAVE', color: '#5F6368',
@@ -44,18 +44,18 @@ const ACTIONS = {
   },
   PENDING_ADMIN_CASE: {
     label: 'With pending administrative case', button: 'WITH PENDING ADMIN CASE', color: '#B3261E', needsDetails: true,
-    prompt: 'Specify the case (reference/docket no.) and its current status:',
+    prompt: 'Case reference no. and current status:',
   },
   ONGOING_INVESTIGATION: {
     label: 'With ongoing investigation (no formal charge yet)', button: 'ONGOING INVESTIGATION', color: '#B3261E', needsDetails: true,
-    prompt: 'Specify the matter under investigation and what is needed from the employee, if any:',
+    prompt: 'Matter under investigation and action needed, if any:',
   },
   CERTIFY: {
     label: 'Certified', button: 'CERTIFY', color: '#1E7B34', final: true,
   },
   HOLD: {
     label: 'On Hold', button: 'HOLD', color: '#B3261E', needsDetails: true,
-    prompt: 'State the reason for the hold and what must be done before certification:',
+    prompt: 'Reason for hold and action needed before certification:',
   },
 };
 
