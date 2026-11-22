@@ -92,7 +92,9 @@ in this repository.
 | Parts IV–V reminder | Working days, every 2 working days while pending | Reminder email (cc clearance@). These Parts are never deemed cleared. |
 | 30-day reminder (§III.D.3) | First working day on or after Date of Effectivity + 25 days, once per clearance | A final reminder to every Part II–IV signatory still pending or Not Cleared, and a note to the employee in the update thread listing what is still open. |
 
-Officers can still act after their due date until the next 7 AM run applies deemed clearance.
+**Rows lock at the deadline (11:59 PM of the due date).** As soon as anyone opens the portal or dashboard after a
+deadline, overdue rows are deemed cleared and routing moves on. An officer who tries to act on an expired row is
+told it has been deemed cleared. The 7 AM run catches anything not yet swept, and sends the reminders.
 
 **Testing without waiting days** (only while `TEST_MODE` is on; each uses the most recent in-progress clearance):
 `testReminders` (makes the current rows due for a reminder), `testDeemedClearance` (makes current Part II–III rows
@@ -103,17 +105,22 @@ Reminders only go out on working days, so run them on a weekday.
 
 When Part V is certified, `finalizeClearance_` runs automatically:
 1. A QR code is placed at the top right of the form. It opens the **verification page**
-   (`VERIFY_URL?verify=REF&k=CODE`, with a 10-character code derived from the reference number, so other
+   (`VERIFY_URL?v=REF&k=CODE`, with an 8-character code derived from the reference number, so other
    clearances cannot be looked up by guessing). If **Settings → VERIFY_URL** is blank, the QR opens the PDF itself.
-2. The form (both sheets) is exported to PDF (**Settings → PDF_PAPER_SIZE**: A4, letter or legal), saved in
+2. The form (both sheets) is exported to PDF (**Settings → PDF_PAPER_SIZE**: `oficio` = 8.5" × 13" by default,
+   or `legal` or `A4`), saved in
    *Completed Clearances* and shared as *anyone with the link can view*. The live form moves to that folder too.
 3. The request becomes **COMPLETED**, and the employee gets the PDF **attached** in their update thread (cc Supervisor).
 
 The verification page shows only: the VALID or REVOKED status, Ref No., employee name, Date of Effectivity,
 completion date and a *View PDF* button.
 
-The QR image comes from a free QR service (quickchart.io, with api.qrserver.com as a fallback). Only the verification
-or PDF link is sent to it. If both fail, the request stays **All signed · PDF pending**, and the dashboard shows a
+**QR code:** generated inside the script by `QrCode.gs`, with no outside service. To keep it easy to scan, it uses the
+smallest QR version that fits, keeping error-correction level M (15%) unless level L (7%) gives a smaller code.
+It is printed at about 3.4 cm. A verification link (about 140 characters) becomes a 45 × 45 version-7 code, and a
+direct PDF link a 33 × 33 version-4 code. The encoder was checked against the reference `qrcode` library (all test
+matrices and PNGs identical, versions 1–20, levels L and M) and decoded with zxing-cpp (34/34).
+If finalization fails, the request stays **All signed · PDF pending**, and the dashboard shows a
 **Generate final PDF** button. Admins can also **Revoke** a completed clearance (with a reason), after which the
 verification page shows REVOKED.
 
@@ -128,7 +135,7 @@ verification page shows REVOKED.
 | 1 | Master DB, template cleanup, branded intake web app, live form copy and sharing | Done |
 | 2 | Officer Portal and All-Clearances dashboard, routing II → III → IV → V, notations, employee updates, accountability and hold threads, OB extension, admin reopen | Done |
 | 3 | Daily checks: reminders, deemed clearance (Parts II–III), 30-day reminder | Done (`release-02`) |
-| 4 | Final PDF with QR, verification page, revoke | **Ready to test** (`release-03`) |
+| 4 | Final PDF with QR, verification page, revoke | **Ready to test** (`release-04`) |
 
 ## Setup (fresh Apps Script project)
 
@@ -144,7 +151,7 @@ Signed in as **comben@dap.edu.ph**:
 3. In the GitHub Assistant bar, pick repository **TheSortingHash/HRMDDE-ClearanceForm**, branch
    the newest **release-NN** branch, then **Pull** (the GitHub Assistant fails when re-pulling a branch it has
    already pulled, so each update is published as a new release branch). You should get these `.gs` files:
-   `Clearance, Config, Db, Directory, EmailTemplate, Finalize, Notify, PortalApi, Scheduler, Setup, Template,
+   `Clearance, Config, Db, Directory, EmailTemplate, Finalize, Notify, PortalApi, QrCode, Scheduler, Setup, Template,
    TestTools, Verify, WebApp, Workflow, WorkingDays`, plus `Intake` and `Portal` (.html) and `appsscript.json`. If the editor still shows the default `Code.gs`, delete it.
 4. Project Settings: tick **Show "appsscript.json"**, and check the time zone is *(GMT+08:00) Manila*.
    Under **Services** you should see **Drive API** and **Gmail API**, which are turned on by `appsscript.json`.

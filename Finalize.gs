@@ -4,18 +4,15 @@
  * Runs automatically when the last signatory (Part V) certifies. If it fails, the request stays
  * SIGNED ("All signed · PDF pending") and an HRMDD admin can retry from the dashboard.
  *
+ * The QR code is generated inside the script (QrCode.gs); no external service is used.
+ *
  * QR target:
  *  - Settings → VERIFY_URL set (public "Anyone" deployment): the QR opens the verification page.
  *  - VERIFY_URL blank: the QR opens the PDF itself (a placeholder file is created first so its link
  *    is known, then its content is replaced with the exported PDF).
  */
 
-/** Free QR image services (only the verification/PDF link is sent). Tried in order. */
-const QR_SERVICES = [
-  (text) => `https://quickchart.io/qr?size=300&margin=1&ecLevel=M&format=png&text=${encodeURIComponent(text)}`,
-  (text) => `https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=4&ecc=M&format=png&data=${encodeURIComponent(text)}`,
-];
-const QR_SIZE_PX = 92;
+const QR_SIZE_PX = 130; // on-sheet size; the PNG itself is rendered at 8 px per module
 
 function finalizeClearance_(ref, actor) {
   const req = getRequest_(ref);
@@ -32,7 +29,7 @@ function finalizeClearance_(ref, actor) {
   let pdfFile = null;
   let qrTarget;
   if (verifyBase) {
-    qrTarget = `${verifyBase}?verify=${encodeURIComponent(ref)}&k=${code}`;
+    qrTarget = `${verifyBase}?v=${encodeURIComponent(ref)}&k=${code}`; // short link = smaller QR
   } else {
     pdfFile = completed.createFile(Utilities.newBlob(' ', 'application/pdf', pdfName)); // placeholder
     qrTarget = pdfFile.getUrl();
@@ -42,7 +39,7 @@ function finalizeClearance_(ref, actor) {
   try {
     // 2. QR code at the top right (replaces any earlier one).
     sheet.getImages().forEach((img) => { if (img.getAltTextTitle() === 'ECL_QR') img.remove(); });
-    const qr = sheet.insertImage(fetchQr_(qrTarget), 14, 1, 40, 2);
+    const qr = sheet.insertImage(qrPngBlob_(qrTarget), 14, 1, 30, 2); // built-in generator (QrCode.gs)
     qr.setWidth(QR_SIZE_PX).setHeight(QR_SIZE_PX).setAltTextTitle('ECL_QR')
       .setAltTextDescription(`Scan to verify ${ref}`);
     highlightStage_(ss, 'COMPLETED');
@@ -74,28 +71,18 @@ function finalizeClearance_(ref, actor) {
   return pdfFile.getUrl();
 }
 
-/** PNG blob of a QR code for `text`, from the first QR service that answers. */
-function fetchQr_(text) {
-  let lastError = '';
-  for (let i = 0; i < QR_SERVICES.length; i++) {
-    try {
-      const res = UrlFetchApp.fetch(QR_SERVICES[i](text), { muteHttpExceptions: true, followRedirects: true });
-      if (res.getResponseCode() === 200 && /image\/png/i.test(String(res.getHeaders()['Content-Type'] || 'image/png'))) {
-        return res.getBlob().setName('qr.png').setContentType('image/png');
-      }
-      lastError = `HTTP ${res.getResponseCode()}`;
-    } catch (err) {
-      lastError = err.message;
-    }
-  }
-  throw new Error(`Could not generate the QR code (${lastError}).`);
-}
+/**
+ * Paper sizes for Settings → PDF_PAPER_SIZE, as Google Sheets export size codes.
+ * Oficio (long bond, 8.5" × 13") is Google's "Folio".
+ */
+const PAPER_SIZES = { oficio: 5, folio: 5, long: 5, legal: 2, a4: 7, letter: 0 };
 
 /** Exports both sheets (form + instructions) as one PDF. Paper size from Settings → PDF_PAPER_SIZE. */
 function exportPdf_(spreadsheetId, name) {
-  const size = (setting_('PDF_PAPER_SIZE') || 'A4').toLowerCase();
+  const key = String(setting_('PDF_PAPER_SIZE') || 'oficio').trim().toLowerCase();
+  if (!(key in PAPER_SIZES)) throw new Error(`Unknown PDF_PAPER_SIZE "${key}". Use oficio, legal or A4.`);
   const params = {
-    format: 'pdf', size, portrait: 'true', fitw: 'true', gridlines: 'false', printtitle: 'false',
+    format: 'pdf', size: PAPER_SIZES[key], portrait: 'true', fitw: 'true', gridlines: 'false', printtitle: 'false',
     sheetnames: 'false', pagenum: 'UNDEFINED', fzr: 'false', horizontal_alignment: 'CENTER',
     top_margin: '0.4', bottom_margin: '0.4', left_margin: '0.4', right_margin: '0.4',
   };

@@ -1,5 +1,5 @@
 /**
- * Public verification page opened by the QR code: ?verify=<Ref No>&k=<code>.
+ * Public verification page opened by the QR code: ?v=<Ref No>&k=<code> (?verify= also accepted).
  * Serve it from a second deployment whose access is "Anyone" and put its /exec URL in
  * Settings → VERIFY_URL. Shows minimal details only. The code (an HMAC of the reference number)
  * prevents looking up other clearances by guessing reference numbers.
@@ -15,16 +15,16 @@ function verifySecret_() {
   return s;
 }
 
-/** 10-character code derived from the reference number. */
+/** 8-character code derived from the reference number (40 bits; not guessable). */
 function verifyCode_(ref) {
   const sig = Utilities.computeHmacSha256Signature(String(ref), verifySecret_());
   let bits = 0;
   let value = 0;
   let out = '';
-  for (let i = 0; i < sig.length && out.length < 10; i++) {
+  for (let i = 0; i < sig.length && out.length < 8; i++) {
     value = ((value << 8) | (sig[i] & 0xff)) & 0xffff;
     bits += 8;
-    while (bits >= 5 && out.length < 10) {
+    while (bits >= 5 && out.length < 8) {
       out += CODE_ALPHABET_[(value >>> (bits - 5)) & 31];
       bits -= 5;
     }
@@ -33,7 +33,7 @@ function verifyCode_(ref) {
 }
 
 function verifyPage_(p) {
-  const ref = String(p.verify || '').trim().toUpperCase();
+  const ref = String(p.v || p.verify || '').trim().toUpperCase();
   const code = String(p.k || '').trim().toUpperCase();
   let req = null;
   try {

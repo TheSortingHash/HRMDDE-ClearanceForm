@@ -104,7 +104,7 @@ const SEED_DATA_ = {
     ['HRMDD_ADMINS', 'comben@dap.edu.ph', 'DAP accounts that see the All-Clearances dashboard and can reopen rows.'],
     ['WEBAPP_URL', '', 'The web app /exec URL used in email links. Leave blank to detect it automatically.'],
     ['VERIFY_URL', '', 'The /exec URL of the public verification deployment (access: Anyone). Blank = the QR code links straight to the PDF.'],
-    ['PDF_PAPER_SIZE', 'A4', 'Paper size of the final PDF: A4, letter or legal.'],
+    ['PDF_PAPER_SIZE', 'oficio', 'Paper size of the final PDF: oficio (8.5" x 13", default), legal or A4.'],
     ['EMPLOYEE_SOURCE_ID', '', 'Spreadsheet ID of the E-Payment Hub (source of the employee directory for importEmployees).'],
     ['EMPLOYEE_SOURCE_SHEET', 'Payee_Database', 'Tab in the source spreadsheet with Payee Name, Email Address, HRIS Number.'],
   ],

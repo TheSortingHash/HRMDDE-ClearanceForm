@@ -147,7 +147,7 @@ are deducted from the employee's remaining pay. Please record your action on the
     }[kind];
     const note = kind === 'FINAL' ? ''
       : `<p style="font-size: 14px;">${deemed
-        ? 'If no action is recorded by the date shown, the employee will be <b>deemed cleared</b> by your office (MC-2026-014 &sect;III.E). If you are on official business, leave or travel, you may extend this to 7 working days in the portal.'
+        ? 'The row locks at <b>11:59 PM</b> of the date shown. If no action is recorded by then, the employee is <b>deemed cleared</b> by your office (MC-2026-014 &sect;III.E). If you are on official business, leave or travel, you may extend this to 7 working days in the portal before the deadline.'
         : 'Please act within three (3) working days (MC-2026-014 &sect;III.B.2).'}</p>`;
 
     const inner = `

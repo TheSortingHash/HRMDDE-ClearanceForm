@@ -143,8 +143,8 @@
     var t = 'Due ' + r.dueAt + (r.extended ? ' (extended)' : '');
     var warn = r.daysLeft <= 0;
     if (r.status === 'SENT') {
-      if (r.daysLeft < 0) t += ' · overdue' + (r.deemedApplies ? ' — the employee may be deemed cleared' : '');
-      else if (r.daysLeft === 0) t += ' · due today';
+      if (r.daysLeft < 0) t += ' · overdue';
+      else if (r.daysLeft === 0) t += ' · due today' + (r.deemedApplies ? ' (locks at 11:59 PM)' : '');
       else t += ' · ' + r.daysLeft + ' working day' + (r.daysLeft === 1 ? '' : 's') + ' left';
     } else { warn = false; }
     return '<div class="due' + (warn ? ' warn' : '') + '">' + esc(t) + '</div>';
@@ -244,7 +244,7 @@
     openModal(a.full, html, a.needsDetails ? a.prompt : '', a.needsDetails ? MIN : 0, function (details) {
       google.script.run
         .withSuccessHandler(function (res) { closeModal(); toast(res.message, true); renderPending(res.data); renderActed(res.data); adminCache = null; })
-        .withFailureHandler(function (e) { closeModal(); toast(e.message || String(e)); })
+        .withFailureHandler(function (e) { closeModal(); toast(e.message || String(e)); loadPortal(); })
         .portalAct(g.ref, r.rowId, a.key, details);
     });
   }

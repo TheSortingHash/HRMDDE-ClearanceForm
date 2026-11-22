@@ -120,6 +120,13 @@ function applyAction_(user, ref, rowId, action, details) {
     if (sig.Status === SIG_STATUS.WAITING || !isCurrentStep_(sig, sigs)) {
       throw new Error('This row is not yet due for your action: an earlier Part of the clearance is still open.');
     }
+    if (sig.Status === SIG_STATUS.SENT && DEEMED_PARTS.indexOf(sig.Part) >= 0 &&
+      sig['Due At'] instanceof Date && new Date() > sig['Due At']) {
+      // The deadline has passed: the row locks and deemed clearance applies now (§III.E), for fairness.
+      applyDeemedClearance_(req, sigs, new Date());
+      throw new Error(`The deadline for this row (${fmtDate_(sig['Due At'])}) has passed, so the employee has been ` +
+        'deemed cleared by your office (MC-2026-014 §III.E). If there is an outstanding accountability, please inform HRMDD.');
+    }
     if (isDone_(sig)) {
       throw new Error(`This row was already recorded (${sig.Status}) on ${fmtDateTime_(sig['Action At'])}. Only HRMDD can reopen it.`);
     }

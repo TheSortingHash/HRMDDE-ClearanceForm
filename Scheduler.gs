@@ -1,9 +1,10 @@
 /**
  * Phase 3 — daily checks (time trigger, 7 AM Manila). Installed by setupSystem() / installTriggers().
  *
- *  1. Deemed clearance (Parts II–III, §III.E): a SENT row past its due date becomes DEEMED_CLEARED;
- *     the officer (cc clearance@) and the employee (update thread) are notified; routing advances.
- *     Applied every day.
+ *  1. Deemed clearance (Parts II–III, §III.E): a SENT row past its due date (11:59 PM) becomes
+ *     DEEMED_CLEARED; the officer (cc clearance@) and the employee (update thread) are notified; routing
+ *     advances. Rows lock at the deadline: the portal applies this as soon as anyone opens it, and this
+ *     daily run catches the rest.
  *  2. Reminders (working days only):
  *     - Parts II–III: once when 1 working day is left (again if the deadline was extended).
  *     - Parts IV–V: every 2 working days while SENT, cc clearance@.
@@ -66,6 +67,28 @@ function applyDeemedClearance_(req, sigs, now) {
   });
   advance_(req['Ref No']);
   return overdue.length;
+}
+
+/**
+ * Applies deemed clearance to every overdue Part II–III row right away (rows lock at 11:59 PM of the
+ * due date). Called when the portal or dashboard loads, so nobody sees or acts on an expired row.
+ */
+function sweepOverdue_() {
+  return withLock_(() => {
+    const now = new Date();
+    const open = readObjects_('Requests').filter((r) => r.Status === 'IN_PROGRESS');
+    if (!open.length) return 0;
+    const all = readObjects_('Signatories');
+    let n = 0;
+    open.forEach((req) => {
+      try {
+        n += applyDeemedClearance_(req, all.filter((s) => s['Ref No'] === req['Ref No']), now);
+      } catch (err) {
+        console.error(`sweep ${req['Ref No']}: ${err.stack || err}`);
+      }
+    });
+    return n;
+  });
 }
 
 /** Whether a SENT row should get a reminder today. */

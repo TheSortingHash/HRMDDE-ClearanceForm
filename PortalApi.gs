@@ -28,6 +28,7 @@ function officerPortalPage_(user, p) {
 /** Pending and recently-acted rows for the signed-in officer (dates as display strings). */
 function portalData() {
   const user = currentUser_();
+  sweepOverdue_(); // rows past their deadline lock (deemed cleared) before anything is shown
   const reqs = {};
   readObjects_('Requests').forEach((r) => (reqs[r['Ref No']] = r));
   const all = readObjects_('Signatories');
@@ -100,6 +101,7 @@ function requireAdmin_() {
 /** All clearances, alphabetical by employee, with each signatory's status. */
 function adminData() {
   requireAdmin_();
+  sweepOverdue_();
   const bySig = {};
   readObjects_('Signatories').forEach((s) => (bySig[s['Ref No']] = bySig[s['Ref No']] || []).push(s));
   const folder = (k) => (prop_('FOLDER_' + k) ? `https://drive.google.com/drive/folders/${prop_('FOLDER_' + k)}` : '');
@@ -114,7 +116,7 @@ function adminData() {
       flagged: sigs.filter((s) => s.Status === SIG_STATUS.NOT_CLEARED || s.Status === SIG_STATUS.HOLD).length,
       completedAt: fmtDate_(r['Completed At']),
       verifyUrl: r['Verify Code'] && verifyBase
-        ? `${verifyBase}?verify=${encodeURIComponent(r['Ref No'])}&k=${r['Verify Code']}` : '',
+        ? `${verifyBase}?v=${encodeURIComponent(r['Ref No'])}&k=${r['Verify Code']}` : '',
       revokeReason: r['Revoke Reason'] || '',
       rows: sigs.map((s) => ({
         rowId: s['Row ID'], part: s.Part, office: s.Office, officer: s['Officer Name'],
