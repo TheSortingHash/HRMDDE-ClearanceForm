@@ -39,7 +39,7 @@ function createClearance_(data, filedBy) {
   lock.waitLock(30000);
   try {
     const open = readObjects_('Requests').find((r) =>
-      String(r['Personal Email']).toLowerCase() === data.personalEmail && r.Status !== 'COMPLETED' && r.Status !== 'CANCELLED');
+      String(r['Personal Email']).toLowerCase() === data.personalEmail && ['COMPLETED', 'CANCELLED', 'REVOKED'].indexOf(r.Status) < 0);
     if (open) throw new Error(`An open clearance already exists for ${data.personalEmail}: ${open['Ref No']}.`);
 
     const signatories = buildSignatories_(data, readObjects_('Officers'));

@@ -54,7 +54,7 @@ function advance_(ref) {
     updateRow_('Requests', req._row, { Status: 'SIGNED', Stage: 'COMPLETED', 'Completed At': new Date() });
     highlightStage_(ss, 'COMPLETED');
     audit_(ref, 'system', 'ALL_SIGNED', '');
-    notifyCompleted_(req);
+    tryFinalize_(ref, 'system'); // PDF + QR + notice; on failure the employee is told HRMDD will issue it
     return;
   }
 

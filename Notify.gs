@@ -69,11 +69,23 @@ function sendRaw_(o) {
     o.inReplyTo ? `In-Reply-To: ${o.inReplyTo}` : '',
     o.inReplyTo ? `References: ${o.inReplyTo}` : '',
     'MIME-Version: 1.0',
-    'Content-Type: text/html; charset=UTF-8',
-    'Content-Transfer-Encoding: base64',
   ].filter(String);
-  const body = Utilities.base64Encode(o.html, Utilities.Charset.UTF_8).replace(/(.{76})/g, '$1\r\n');
-  const raw = Utilities.base64EncodeWebSafe(headers.join('\r\n') + '\r\n\r\n' + body);
+  const wrap = (b64) => b64.replace(/(.{76})/g, '$1\r\n');
+  const htmlPart = ['Content-Type: text/html; charset=UTF-8', 'Content-Transfer-Encoding: base64', '',
+    wrap(Utilities.base64Encode(o.html, Utilities.Charset.UTF_8))].join('\r\n');
+  let mime;
+  if (o.attachments && o.attachments.length) {
+    const boundary = 'ecl_' + Utilities.getUuid().replace(/-/g, '');
+    const parts = [htmlPart].concat(o.attachments.map((b) => [
+      `Content-Type: ${b.getContentType()}; name="${mimeHeader_(b.getName())}"`,
+      `Content-Disposition: attachment; filename="${mimeHeader_(b.getName())}"`,
+      'Content-Transfer-Encoding: base64', '', wrap(Utilities.base64Encode(b.getBytes()))].join('\r\n')));
+    mime = headers.concat([`Content-Type: multipart/mixed; boundary="${boundary}"`, '',
+      parts.map((p) => `--${boundary}\r\n${p}`).join('\r\n'), `--${boundary}--`]).join('\r\n');
+  } else {
+    mime = headers.join('\r\n') + '\r\n' + htmlPart;
+  }
+  const raw = Utilities.base64EncodeWebSafe(mime);
   const resource = { raw };
   if (o.threadId) resource.threadId = o.threadId;
   const sent = Gmail.Users.Messages.send(resource, 'me');
@@ -86,7 +98,7 @@ function sendRaw_(o) {
  * Adds a status update to the clearance's single update thread (starts it on first use).
  * `req` is a Requests record from readObjects_ (needs _row).
  */
-function sendUpdate_(req, title, inner) {
+function sendUpdate_(req, title, inner, attachments) {
   const base = subject_(`Clearance updates: ${req['Employee Name (HRIS)']} (${req['Ref No']})`);
   const threadId = req['Update Thread ID'] || '';
   const first = req['Update Message ID'] || '';
@@ -95,7 +107,7 @@ function sendUpdate_(req, title, inner) {
   const res = sendRaw_({
     to: req['Personal Email'], cc, replyTo: hrmddReplyTo_(),
     subject: first ? `Re: ${base}` : base,
-    html: brandedEmail_(title, inner), threadId, inReplyTo: first,
+    html: brandedEmail_(title, inner), threadId, inReplyTo: first, attachments,
   });
   if (!first) {
     updateRow_('Requests', req._row, { 'Update Thread ID': res.threadId, 'Update Message ID': res.messageId });
@@ -255,6 +267,21 @@ to the signatory for action.</p>
 <div style="background:#fff8e1; border-left:5px solid ${ECL.BRAND.GOLD}; padding:12px; white-space:pre-wrap;">${escapeHtml_(reason)}</div>
 ${linkButton_(req['Live Form URL'], 'View My Live Clearance Form')}`;
   sendUpdate_(req, 'Clearance Reopened', inner);
+}
+
+/** Final electronic clearance, PDF attached, in the update thread. */
+function notifyFinalized_(req, pdfBlob, verifyUrl) {
+  const inner = `
+<p>Dear <b>${escapeHtml_(req['Employee Name (HRIS)'])}</b>,</p>
+<p>Your clearance (${req['Ref No']}) is <b>complete</b>. All signatories have cleared you of work-related, money and
+property accountabilities, and the Acting Executive Vice President has issued the final certification.</p>
+<p>Your electronic clearance (CS Form No. 7) is attached. It carries a QR code that anyone can scan to verify
+it${verifyUrl ? '' : ' and open this PDF'}.</p>
+${linkButton_(req['PDF URL'], 'Open Electronic Clearance (PDF)')}
+${verifyUrl ? `<p style="text-align:center; font-size:13px;"><a href="${verifyUrl}" style="color:${ECL.BRAND.NAVY};">Verification page</a></p>` : ''}
+<p style="font-size: 14px; color: #555;">Please submit the remaining separation requirements to HRMDD (Approved CS Form
+No. 10, notarized SALN, notarized Security Reminder and the approved ALA form) for the processing of your terminal pay.</p>`;
+  sendUpdate_(req, 'Clearance Complete', inner, pdfBlob ? [pdfBlob] : []);
 }
 
 function notifyCompleted_(req) {

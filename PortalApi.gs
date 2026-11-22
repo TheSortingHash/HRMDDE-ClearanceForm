@@ -104,6 +104,7 @@ function adminData() {
   readObjects_('Signatories').forEach((s) => (bySig[s['Ref No']] = bySig[s['Ref No']] || []).push(s));
   const folder = (k) => (prop_('FOLDER_' + k) ? `https://drive.google.com/drive/folders/${prop_('FOLDER_' + k)}` : '');
 
+  const verifyBase = setting_('VERIFY_URL');
   const list = readObjects_('Requests').map((r) => {
     const sigs = (bySig[r['Ref No']] || []).sort((a, b) => Number(a.Step) - Number(b.Step));
     return {
@@ -112,6 +113,9 @@ function adminData() {
       total: sigs.length,
       flagged: sigs.filter((s) => s.Status === SIG_STATUS.NOT_CLEARED || s.Status === SIG_STATUS.HOLD).length,
       completedAt: fmtDate_(r['Completed At']),
+      verifyUrl: r['Verify Code'] && verifyBase
+        ? `${verifyBase}?verify=${encodeURIComponent(r['Ref No'])}&k=${r['Verify Code']}` : '',
+      revokeReason: r['Revoke Reason'] || '',
       rows: sigs.map((s) => ({
         rowId: s['Row ID'], part: s.Part, office: s.Office, officer: s['Officer Name'],
         email: s['Officer Email'], status: s.Status, sentAt: fmtDate_(s['Sent At']), dueAt: fmtDate_(s['Due At']),
@@ -130,6 +134,19 @@ function adminData() {
       db: prop_('DB_ID') ? `https://docs.google.com/spreadsheets/d/${prop_('DB_ID')}/edit` : '',
     },
   };
+}
+
+/** Retry finalization (PDF + QR) for a fully signed clearance. */
+function adminFinalize(ref) {
+  const admin = requireAdmin_();
+  const url = withLock_(() => finalizeClearance_(ref, admin));
+  return { message: `Final PDF issued for ${ref}.`, url, data: adminData() };
+}
+
+function adminRevoke(ref, reason) {
+  const admin = requireAdmin_();
+  const message = revokeClearance_(admin, ref, reason);
+  return { message, data: adminData() };
 }
 
 function adminReopen(ref, rowId, reason) {

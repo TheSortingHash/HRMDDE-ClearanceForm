@@ -99,6 +99,27 @@ Officers can still act after their due date until the next 7 AM run applies deem
 overdue), `testFinalReminder` (moves the Date of Effectivity 25 days back). Each runs the daily checks immediately.
 Reminders only go out on working days, so run them on a weekday.
 
+## Final electronic clearance (Phase 4)
+
+When Part V is certified, `finalizeClearance_` runs automatically:
+1. A QR code is placed at the top right of the form. It opens the **verification page**
+   (`VERIFY_URL?verify=REF&k=CODE`, with a 10-character code derived from the reference number, so other
+   clearances cannot be looked up by guessing). If **Settings → VERIFY_URL** is blank, the QR opens the PDF itself.
+2. The form (both sheets) is exported to PDF (**Settings → PDF_PAPER_SIZE**: A4, letter or legal), saved in
+   *Completed Clearances* and shared as *anyone with the link can view*. The live form moves to that folder too.
+3. The request becomes **COMPLETED**, and the employee gets the PDF **attached** in their update thread (cc Supervisor).
+
+The verification page shows only: the VALID or REVOKED status, Ref No., employee name, Date of Effectivity,
+completion date and a *View PDF* button.
+
+The QR image comes from a free QR service (quickchart.io, with api.qrserver.com as a fallback). Only the verification
+or PDF link is sent to it. If both fail, the request stays **All signed · PDF pending**, and the dashboard shows a
+**Generate final PDF** button. Admins can also **Revoke** a completed clearance (with a reason), after which the
+verification page shows REVOKED.
+
+**Testing:** file a clearance, run `testFastForwardToEVP` (clears Parts II–IV as TEST), then certify as the EVP
+(anchetam@) in the portal.
+
 ## Build phases
 
 | Phase | Scope | Status |
@@ -106,8 +127,8 @@ Reminders only go out on working days, so run them on a weekday.
 | 0 | Gmail button spike | Done (superseded by the Officer Portal) |
 | 1 | Master DB, template cleanup, branded intake web app, live form copy and sharing | Done |
 | 2 | Officer Portal and All-Clearances dashboard, routing II → III → IV → V, notations, employee updates, accountability and hold threads, OB extension, admin reopen | Done |
-| 3 | Daily checks: reminders, deemed clearance (Parts II–III), 30-day reminder | **Ready to test** (`release-02`) |
-| 4 | PDF export, QR code, verification page | — |
+| 3 | Daily checks: reminders, deemed clearance (Parts II–III), 30-day reminder | Done (`release-02`) |
+| 4 | Final PDF with QR, verification page, revoke | **Ready to test** (`release-03`) |
 
 ## Setup (fresh Apps Script project)
 
@@ -123,8 +144,8 @@ Signed in as **comben@dap.edu.ph**:
 3. In the GitHub Assistant bar, pick repository **TheSortingHash/HRMDDE-ClearanceForm**, branch
    the newest **release-NN** branch, then **Pull** (the GitHub Assistant fails when re-pulling a branch it has
    already pulled, so each update is published as a new release branch). You should get these `.gs` files:
-   `Clearance, Config, Db, Directory, EmailTemplate, Notify, PortalApi, Scheduler, Setup, Template, TestTools,
-   WebApp, Workflow, WorkingDays`, plus `Intake` and `Portal` (.html) and `appsscript.json`. If the editor still shows the default `Code.gs`, delete it.
+   `Clearance, Config, Db, Directory, EmailTemplate, Finalize, Notify, PortalApi, Scheduler, Setup, Template,
+   TestTools, Verify, WebApp, Workflow, WorkingDays`, plus `Intake` and `Portal` (.html) and `appsscript.json`. If the editor still shows the default `Code.gs`, delete it.
 4. Project Settings: tick **Show "appsscript.json"**, and check the time zone is *(GMT+08:00) Manila*.
    Under **Services** you should see **Drive API** and **Gmail API**, which are turned on by `appsscript.json`.
 5. comben@ must be able to open the original CS Form No. 7 sheet (`18c6WDzKDde3Ja8WZ0KfpvgcF1skEQ_eaEcWg1dc6SBs`).
@@ -138,8 +159,12 @@ Signed in as **comben@dap.edu.ph**:
    or import `Employees_import.csv` into the **Employees** sheet (File → Import → Upload → *Replace current sheet*).
 8. **Deploy → New deployment → Web app**: Execute as *Me*, Who has access *Anyone within Development Academy
    of the Philippines*. Paste the `/exec` URL into **Settings → WEBAPP_URL**.
-9. Fill in **Holidays** for correct due dates.
-10. Check **Triggers** (clock icon) shows `runDailyChecks`, daily at 7–8 AM.
+9. **Public verification deployment:** Deploy → New deployment → Web app, description *Verify*,
+   Execute as *Me*, Who has access **Anyone**. Paste its `/exec` URL into **Settings → VERIFY_URL**.
+   (If DAP's admin settings don't offer *Anyone*, leave VERIFY_URL blank and the QR links straight to the PDF.)
+   Visitors to this URL who aren't signed in with a DAP account can only see the verification page.
+10. Fill in **Holidays** for correct due dates.
+11. Check **Triggers** (clock icon) shows `runDailyChecks`, daily at 7–8 AM.
 
 Updating an existing project: pull the new release branch, then run `setupSystem` once. It adds any new
 DB columns and settings and re-installs the trigger, without touching your data.

@@ -254,6 +254,7 @@
     if (c.status === 'COMPLETED') return 'Completed';
     if (c.status === 'SIGNED') return 'All signed · PDF pending';
     if (c.status === 'CANCELLED') return 'Cancelled';
+    if (c.status === 'REVOKED') return 'Revoked';
     return 'Part ' + c.stage;
   }
 
@@ -287,7 +288,8 @@
         '<td>' + c.done + ' / ' + c.total + '<div class="bar"><span style="width:' + pct + '%"></span></div></td>' +
         '<td class="hide-sm">' + esc(c.effectivity) + '</td>' +
         '<td><a href="' + esc(c.liveUrl) + '" target="_blank">Live form ↗</a>' +
-        (c.pdfUrl ? '<br><a href="' + esc(c.pdfUrl) + '" target="_blank">PDF ↗</a>' : '') + '</td></tr>' +
+        (c.pdfUrl ? '<br><a href="' + esc(c.pdfUrl) + '" target="_blank">PDF ↗</a>' : '') +
+        (c.verifyUrl ? '<br><a href="' + esc(c.verifyUrl) + '" target="_blank">Verify ↗</a>' : '') + '</td></tr>' +
         '<tr class="detail hidden" id="det-' + i + '"><td colspan="6">' + detailTable(c) + '</td></tr>';
     });
     $('adminTable').innerHTML = html;
@@ -297,14 +299,25 @@
         $('det-' + tr.dataset.i).classList.toggle('hidden');
       };
     });
+    $('adminTable').querySelectorAll('button[data-finalize]').forEach(function (b) {
+      b.onclick = function () { finalizeNow(b.dataset.ref, b); };
+    });
+    $('adminTable').querySelectorAll('button[data-revoke]').forEach(function (b) {
+      b.onclick = function () { openRevoke(b.dataset.ref); };
+    });
     $('adminTable').querySelectorAll('button[data-reopen]').forEach(function (b) {
       b.onclick = function () { openReopen(b.dataset.ref, b.dataset.row, b.dataset.office); };
     });
   }
 
   function detailTable(c) {
+    var actions = '';
+    if (c.status === 'SIGNED') actions += '<button class="btn gold" data-finalize="1" data-ref="' + esc(c.ref) + '">Generate final PDF</button> ';
+    if (c.status === 'COMPLETED') actions += '<button class="btn ghost" data-revoke="1" data-ref="' + esc(c.ref) + '">Revoke clearance</button>';
     return '<div class="small" style="margin-bottom:6px">' + esc(c.position) + ' · Filed ' + esc(c.filed) +
       (c.completedAt ? ' · All signed ' + esc(c.completedAt) : '') + '</div>' +
+      (c.revokeReason ? '<div class="prev"><b>Revoked:</b> ' + esc(c.revokeReason) + '</div>' : '') +
+      (actions ? '<div class="btns" style="margin-bottom:10px">' + actions + '</div>' : '') +
       '<table class="t"><tr><th>Part</th><th>Office / Signatory</th><th>Status</th><th class="hide-sm">Sent · Due</th><th>Acted</th><th></th></tr>' +
       c.rows.map(function (r) {
         return '<tr><td>' + esc(r.part) + '</td><td>' + esc(r.office) + '<div class="small">' + esc(r.officer) + ' · ' + esc(r.email) + '</div>' +
@@ -324,6 +337,25 @@
           .withSuccessHandler(function (res) { closeModal(); toast(res.message, true); adminCache = res.data; renderAdmin(res.data); loadPortal(); })
           .withFailureHandler(function (e) { closeModal(); toast(e.message || String(e)); })
           .adminReopen(ref, rowId, reason);
+      });
+  }
+
+  function finalizeNow(ref, btn) {
+    btn.disabled = true; btn.textContent = 'Generating…';
+    google.script.run
+      .withSuccessHandler(function (res) { toast(res.message, true); adminCache = res.data; renderAdmin(res.data); })
+      .withFailureHandler(function (e) { btn.disabled = false; btn.textContent = 'Generate final PDF'; toast(e.message || String(e)); })
+      .adminFinalize(ref);
+  }
+
+  function openRevoke(ref) {
+    openModal('Revoke clearance', '<p>Mark <b>' + esc(ref) + '</b> as revoked? Its verification page will show ' +
+      '<b>REVOKED</b>. The PDF is not deleted.</p>',
+      'Reason for revoking (recorded in the audit log):', 10, function (reason) {
+        google.script.run
+          .withSuccessHandler(function (res) { closeModal(); toast(res.message, true); adminCache = res.data; renderAdmin(res.data); })
+          .withFailureHandler(function (e) { closeModal(); toast(e.message || String(e)); })
+          .adminRevoke(ref, reason);
       });
   }
 

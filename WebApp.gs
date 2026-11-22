@@ -8,11 +8,17 @@
  *   ?page=intake            RSP intake form (RSP_USERS only). Default for RSP users.
  *   ?page=officer[&ref=…]   Officer Portal — pending clearances and actions.
  *   ?page=admin             All-Clearances dashboard (HRMDD_ADMINS only).
- *   ?verify=<ref>           QR verification page (Phase 4).
+ *   ?verify=<ref>&k=<code>  Public QR verification page (Verify.gs). Serve it from a second
+ *                           deployment with access "Anyone"; set Settings → VERIFY_URL.
  */
 function doGet(e) {
   const p = (e && e.parameter) || {};
+  if (p.verify) return verifyPage_(p); // public: works on the "Anyone" deployment
   const user = currentUser_();
+  if (!user) {
+    return messagePage_('DAP E-Clearance System', `<p>Please open this page while signed in to your DAP
+      (@dap.edu.ph) Google account.</p>`);
+  }
   const page = p.page || (isRspUser_(user) ? 'intake' : 'officer');
 
   if (page === 'officer' || page === 'admin') return officerPortalPage_(user, p);

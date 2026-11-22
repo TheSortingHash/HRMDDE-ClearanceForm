@@ -68,3 +68,26 @@ function testFinalReminder() {
   if (!isWorkingDay_(new Date(), holidaySet_())) console.log('Note: today is not a working day, so no reminders are sent today.');
   runDailyChecks();
 }
+
+/**
+ * Clears every row before Part V on the most recent in-progress clearance (as "TEST"), so the
+ * EVP can certify right away in the portal and the final PDF + QR is produced.
+ */
+function testFastForwardToEVP() {
+  const req = testLatestRef_();
+  const sigs = getSignatories_(req['Ref No']);
+  const ss = SpreadsheetApp.openById(req['Live Form ID']);
+  const now = new Date();
+  sigs.filter((s) => s.Part !== 'V' && !isDone_(s)).forEach((s) => {
+    const changes = {
+      Status: SIG_STATUS.CLEARED, Action: 'CLEARED', 'Action At': now, 'Acted By': 'TEST',
+      Details: '', Notation: `Electronically signed by ${s['Officer Name']} · ${fmtDateTime_(now)} (TEST)`,
+    };
+    updateRow_('Signatories', s._row, changes);
+    Object.assign(s, changes);
+    renderSignatory_(ss, s, sigs);
+  });
+  audit_(req['Ref No'], 'TEST', 'TEST_FAST_FORWARD', 'Parts II–IV cleared for testing');
+  advance_(req['Ref No']);
+  console.log('Parts II–IV cleared. The EVP can now certify in the portal.');
+}
