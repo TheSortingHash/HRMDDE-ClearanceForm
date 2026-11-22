@@ -43,12 +43,22 @@ kept together using the Gmail API (In-Reply-To/References headers), so it shows 
 
 ## Employee directory (autofill)
 
-The **Employees** sheet in the DB follows the E-Payment Hub *Payee_Database* layout: `HRIS Number`,
-`Employee Name (HRIS)`, `DAP Email`, plus optional `Position`, `Office` and `Active`. On the intake form, the
-employee, supervisor and head name fields suggest names as you type. Picking a name fills the HRIS No.
-(and the position and office if present) for the employee, and the DAP email for the supervisor and head. Names
-not in the list can still be typed. For testing, it holds only Dean and Mariel Ancheta. Paste the full list later,
-keeping the HRIS Number column formatted as plain text.
+The **Employees** sheet in the DB holds the full directory from the E-Payment Hub *Payee_Database*:
+`HRIS Number`, `Employee Name (HRIS)`, `DAP Email`, plus optional `Position`, `Office` and `Active`.
+On the intake form, the employee, supervisor and head name fields suggest **active** employees as you type.
+Picking a name fills the HRIS No. (and the position and office if present) for the employee, and the DAP email
+for the supervisor and head. Names not in the list can still be typed.
+
+Loading it, either way:
+- **`importEmployees()`** (recommended, repeatable): put the E-Payment Hub spreadsheet ID in
+  **Settings → EMPLOYEE_SOURCE_ID** (comben@ needs view access) and run the function. It rewrites the sheet,
+  keeping any Position or Office typed by HRMDD and any employees added by hand.
+- **One-time CSV:** `Employees_import.csv` was generated with the same rules (git-ignored, never committed).
+  In the Employees sheet, use File → Import → Upload → *Replace current sheet*.
+
+Rules: an employee is **Active** only with an @dap.edu.ph email. Rows marked "inactive employee", or with a
+non-DAP email, are kept but not suggested. HRIS numbers are stored as text. The employee list is never stored
+in this repository.
 
 ## Agreed workflow
 
@@ -100,8 +110,9 @@ Pages: `/exec` (intake for RSP users, portal for everyone else), `/exec?page=off
 
 ### Phase 2 test checklist
 
-Use the Phase 1 test clearance, or file a new one. Test officers: anchetam@ (Supervisor in the
-sample, III-1a, 2a, 3a, 3b, EVP), anchetad@ (III-1b, 3c, 4a), fd-omd-gse@ (III-1c, 2b, Legal).
+Use the Phase 1 test clearance, or file a new one. Test officers are Dean and Mariel only:
+anchetam@ (III-1a, 2a, 3a, 3b, EVP) and anchetad@ (III-1b, 1c, 2b, 3c, 4a, Legal). Use one of them as
+Supervisor and the other as Head of Office.
 
 - [ ] Intake autofill: typing "ANCHETA" suggests both names. Picking one fills the HRIS No., and picking a Supervisor or Head fills their DAP email.
 - [ ] Filing starts the **Clearance updates** thread (employee, cc Supervisor) and emails the **Supervisor only** (Action needed, with a portal link). The Head gets nothing yet.

@@ -89,11 +89,11 @@ function seedTable_(name, sh) {
 }
 
 /**
- * Seed data. Officer emails are the prototype TEST addresses — replace them with the real
- * official addresses in the Officers sheet before go-live.
+ * Seed data. Officer emails are the prototype TEST addresses (Dean and Mariel only) — replace
+ * them with the real official addresses in the Officers sheet before go-live.
  */
 const SEED_DATA_ = {
-  // Test entries only. HRMDD will load the full employee list later (HRIS Number as text).
+  // Starter entries; run importEmployees() to load the full directory from the E-Payment Hub.
   Employees: [
     ['211265', 'ANCHETA, DEAN JOSEPH HANS M.', 'anchetad@dap.edu.ph', '', '', true],
     ['213147', 'ANCHETA, MARIEL LOUISE P', 'anchetam@dap.edu.ph', '', '', true],
@@ -102,18 +102,20 @@ const SEED_DATA_ = {
     ['RSP_USERS', 'comben@dap.edu.ph, anchetad@dap.edu.ph', 'DAP accounts allowed to use the intake web app (comma-separated).'],
     ['HRMDD_ADMINS', 'comben@dap.edu.ph', 'DAP accounts that see the All-Clearances dashboard and can reopen rows.'],
     ['WEBAPP_URL', '', 'The web app /exec URL used in email links. Leave blank to detect it automatically.'],
+    ['EMPLOYEE_SOURCE_ID', '', 'Spreadsheet ID of the E-Payment Hub (source of the employee directory for importEmployees).'],
+    ['EMPLOYEE_SOURCE_SHEET', 'Payee_Database', 'Tab in the source spreadsheet with Payee Name, Email Address, HRIS Number.'],
   ],
   Officers: [
     ['III-1a', 'III', '1. Administrative Services', 'Supply and Property Procurement and Management Services (Logistics Division)', 'JOMAR A. PASTRANA', '', 'anchetam@dap.edu.ph', '', '', true],
     ['III-1b', 'III', '1. Administrative Services', 'Human Resource Welfare and Assistance (Human Resource Management Division)', 'REYNALYN T. PADSOYAN', '', 'anchetad@dap.edu.ph', '', '', true],
-    ['III-1c', 'III', '1. Administrative Services', 'Agency-accredited Union/Cooperative (DPMPC)', 'CHRISTIAN S. EPARWA', '', 'fd-omd-gse@dap.edu.ph', '', '', true],
+    ['III-1c', 'III', '1. Administrative Services', 'Agency-accredited Union/Cooperative (DPMPC)', 'CHRISTIAN S. EPARWA', '', 'anchetad@dap.edu.ph', '', '', true],
     ['III-2a', 'III', '2. Library', 'Library', 'MA. THERESA O. JAVIER', '', 'anchetam@dap.edu.ph', '', '', true],
-    ['III-2b', 'III', '2. Library', 'Central Documentation & Records Division (CDRD)', 'LIZA ROSE I. FETALINO', '', 'fd-omd-gse@dap.edu.ph', '', '', true],
+    ['III-2b', 'III', '2. Library', 'Central Documentation & Records Division (CDRD)', 'LIZA ROSE I. FETALINO', '', 'anchetad@dap.edu.ph', '', '', true],
     ['III-3a', 'III', '3. Finance and Assets Management', 'Financial Services', 'ANATALIA SD. BARAWIDAN', '', 'anchetam@dap.edu.ph', '', '', true],
     ['III-3b', 'III', '3. Finance and Assets Management', 'Transaction, Processing, & Billing Services', 'ANATALIA SD. BARAWIDAN', '', 'anchetam@dap.edu.ph', '', '', true],
     ['III-3c', 'III', '3. Finance and Assets Management', 'Payroll & Remittance Services (HRMD - Compensation and Benefits Unit)', 'REYNALYN T. PADSOYAN', '', 'anchetad@dap.edu.ph', '', '', true],
     ['III-4a', 'III', '4. Professional and Institutional Development', 'Scholarship Services / Performance Commitment Review Form (HR Development Division)', 'REYNALYN T. PADSOYAN', '', 'anchetad@dap.edu.ph', '', '', true],
-    ['IV-a', 'IV', 'Certification of No Pending Administrative Case', 'Internal Affairs Office/Legal Service Office', 'ATTY. LESTER JOHN A. VILLAR', '', 'fd-omd-gse@dap.edu.ph', '', '', true],
+    ['IV-a', 'IV', 'Certification of No Pending Administrative Case', 'Internal Affairs Office/Legal Service Office', 'ATTY. LESTER JOHN A. VILLAR', '', 'anchetad@dap.edu.ph', '', '', true],
     ['V-EVP', 'V', 'Certification', 'Office of the Executive Vice President', 'MAGDALENA L. MENDOZA', 'Acting Executive Vice President', 'anchetam@dap.edu.ph', '', '', true],
   ],
 };

@@ -1,3 +1,5 @@
 .clasp.json
 .clasprc.json
 node_modules/
+Employees_import.csv
+*.csv
